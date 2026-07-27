@@ -1,0 +1,26 @@
+{
+  "Culture": "en",
+  "Texts": {
+    "AppName": "LegalTech",
+    "Menu:Home": "Home",
+    "Menu:Contracts": "Contracts",
+    "Welcome": "Welcome",
+    "Permission:Contracts": "Contracts",
+    "Permission:Contracts.Create": "Create Contracts",
+    "Permission:Contracts.Edit": "Edit Contracts",
+    "Permission:Contracts.ChangeStatus": "Change Contract Status",
+    "Permission:Contracts.AttachDocument": "Attach Documents to Contracts",
+    "Permission:Clauses": "Clauses",
+    "Permission:Reviews": "Reviews",
+    "Permission:Obligations": "Obligations",
+    "Permission:Reports": "Reports",
+    "Permission:Files": "Files",
+    "Permission:Administration": "Administration",
+    "Enum:ContractStatus:0": "Draft",
+    "Enum:ContractStatus:1": "Active",
+    "Enum:ContractStatus:2": "Expired",
+    "Enum:ContractStatus:3": "Terminated",
+    "Contract:InvalidStatusTransition": "Invalid contract status transition from '{From}' to '{To}'.",
+    "Contract:UnsupportedFileType": "Unsupported file type '{Extension}'. Allowed types: pdf, doc, docx, txt, xls, xlsx, png, jpg, jpeg."
+  }
+}

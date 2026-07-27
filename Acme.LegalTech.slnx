@@ -1,0 +1,23 @@
+<Solution>
+    <Configurations>
+        <Platform Name="Any CPU" />
+    </Configurations>
+    <Folder Name="/src/">
+        <Project Path="src/Acme.LegalTech.Domain/Acme.LegalTech.Domain.csproj" />
+        <Project Path="src/Acme.LegalTech.Application/Acme.LegalTech.Application.csproj" />
+        <Project Path="src/Acme.LegalTech.EntityFrameworkCore/Acme.LegalTech.EntityFrameworkCore.csproj" />
+        <Project Path="src/Acme.LegalTech.Domain.Shared/Acme.LegalTech.Domain.Shared.csproj" />
+        <Project Path="src/Acme.LegalTech.Application.Contracts/Acme.LegalTech.Application.Contracts.csproj" />
+        <Project Path="src/Acme.LegalTech.HttpApi/Acme.LegalTech.HttpApi.csproj" />
+        <Project Path="src/Acme.LegalTech.HttpApi.Client/Acme.LegalTech.HttpApi.Client.csproj" />
+        <Project Path="src/Acme.LegalTech.HttpApi.Host/Acme.LegalTech.HttpApi.Host.csproj" />
+        <Project Path="src/Acme.LegalTech.DbMigrator/Acme.LegalTech.DbMigrator.csproj" />
+    </Folder>
+    <Folder Name="/test/">
+        <Project Path="test/Acme.LegalTech.Application.Tests/Acme.LegalTech.Application.Tests.csproj" />
+        <Project Path="test/Acme.LegalTech.EntityFrameworkCore.Tests/Acme.LegalTech.EntityFrameworkCore.Tests.csproj" />
+        <Project Path="test/Acme.LegalTech.TestBase/Acme.LegalTech.TestBase.csproj" />
+        <Project Path="test/Acme.LegalTech.Domain.Tests/Acme.LegalTech.Domain.Tests.csproj" />
+        <Project Path="test/Acme.LegalTech.HttpApi.Client.ConsoleTestApp/Acme.LegalTech.HttpApi.Client.ConsoleTestApp.csproj" />
+    </Folder>
+</Solution>

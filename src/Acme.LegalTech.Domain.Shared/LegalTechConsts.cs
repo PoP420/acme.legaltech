@@ -1,0 +1,11 @@
+namespace Acme.LegalTech;
+
+public static class LegalTechConsts
+{
+    public const string DbTablePrefix = "App";
+    public const string? DbSchema = null;
+    public const string AdminEmailDefaultValue = "admin@abp.io";
+    public const string AdminPasswordDefaultValue = "1q2w3E*";
+
+    public const string MigrationModelHashSettingName = "LegalTech.Migration.ModelHash";
+}
