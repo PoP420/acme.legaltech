@@ -7,7 +7,11 @@ export const PLAYBOOKS_ROUTES: Routes = [
     path: '',
     component: PlaybooksComponent,
     canActivate: [permissionGuard],
+<<<<<<< HEAD
     data: { requiredPolicy: 'LegalTech.Clauses.Playbooks' },
+=======
+    data: { requiredPolicy: 'LegalTech.Playbooks.Default' },
+>>>>>>> 9a366cd2c241dd347888a3c2f3176fc7686e7608
     children: [
       {
         path: '',

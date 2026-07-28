@@ -1,5 +1,9 @@
 import { Component } from '@angular/core';
+<<<<<<< HEAD
 import { Router } from '@angular/router';
+=======
+import { RouterLink } from '@angular/router';
+>>>>>>> 9a366cd2c241dd347888a3c2f3176fc7686e7608
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ClausesService } from '../services/clauses.service';
 

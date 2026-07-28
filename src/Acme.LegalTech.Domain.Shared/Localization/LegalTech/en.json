@@ -54,3 +54,4 @@
     "Contract:UnsupportedFileType": "Unsupported file type '{Extension}'. Allowed types: pdf, doc, docx, txt, xls, xlsx, png, jpg, jpeg."
   }
 }
+}

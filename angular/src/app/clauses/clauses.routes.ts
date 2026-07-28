@@ -7,7 +7,11 @@ export const CLAUSES_ROUTES: Routes = [
     path: '',
     component: ClausesComponent,
     canActivate: [permissionGuard],
+<<<<<<< HEAD
     data: { requiredPolicy: 'LegalTech.Clauses' },
+=======
+    data: { requiredPolicy: 'LegalTech.Clauses.Default' },
+>>>>>>> 9a366cd2c241dd347888a3c2f3176fc7686e7608
     children: [
       {
         path: '',
