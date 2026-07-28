@@ -1,4 +1,8 @@
+using Acme.LegalTech.Clauses;
 using Acme.LegalTech.Contracts;
+using Acme.LegalTech.Obligations;
+using Acme.LegalTech.Playbooks;
+using Acme.LegalTech.Reviews;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp.AuditLogging.EntityFrameworkCore;
 using Volo.Abp.BackgroundJobs.EntityFrameworkCore;
@@ -33,6 +37,19 @@ public class LegalTechDbContext :
     public DbSet<ContractDocumentVersion> ContractDocumentVersions { get; set; }
     public DbSet<CounterpartyReference> CounterpartyReferences { get; set; }
     public DbSet<ContractTag> ContractTags { get; set; }
+    public DbSet<ClauseTemplate> ClauseTemplates { get; set; }
+    public DbSet<ClauseTaxonomy> ClauseTaxonomies { get; set; }
+    public DbSet<PlaybookProfile> PlaybookProfiles { get; set; }
+    public DbSet<PlaybookRule> PlaybookRules { get; set; }
+    public DbSet<ReviewCase> ReviewCases { get; set; }
+    public DbSet<ReviewTask> ReviewTasks { get; set; }
+    public DbSet<ApprovalStep> ApprovalSteps { get; set; }
+    public DbSet<ReviewComment> ReviewComments { get; set; }
+    public DbSet<EscalationEvent> EscalationEvents { get; set; }
+    public DbSet<ContractObligation> ContractObligations { get; set; }
+    public DbSet<RenewalSchedule> RenewalSchedules { get; set; }
+    public DbSet<ObligationReminder> ObligationReminders { get; set; }
+    public DbSet<CompletionEvidence> CompletionEvidence { get; set; }
 
 
     #region Entities from the modules
@@ -121,6 +138,136 @@ public class LegalTechDbContext :
             b.ConfigureByConvention();
 
             b.HasIndex(t => new { t.ContractId, t.Name }).IsUnique();
+        });
+
+        builder.Entity<ClauseTemplate>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "ClauseTemplates", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(c => c.TenantId);
+            b.HasIndex(c => c.TaxonomyId);
+            b.HasIndex(c => c.IsActive);
+            b.HasIndex(c => c.Category);
+        });
+
+        builder.Entity<ClauseTaxonomy>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "ClauseTaxonomies", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(c => c.TenantId);
+            b.HasIndex(c => c.ParentId);
+            b.HasIndex(c => c.IsActive);
+        });
+
+        builder.Entity<PlaybookProfile>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "PlaybookProfiles", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(p => p.TenantId);
+            b.HasIndex(p => p.IsActive);
+        });
+
+        builder.Entity<PlaybookRule>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "PlaybookRules", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(r => r.PlaybookId);
+            b.HasIndex(r => r.TenantId);
+        });
+
+        builder.Entity<ReviewCase>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "ReviewCases", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(r => r.TenantId);
+            b.HasIndex(r => r.ContractId);
+            b.HasIndex(r => r.Status);
+            b.HasIndex(r => r.AssignedUserId);
+        });
+
+        builder.Entity<ReviewTask>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "ReviewTasks", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(t => t.ReviewCaseId);
+            b.HasIndex(t => t.TenantId);
+            b.HasIndex(t => t.AssignedUserId);
+            b.HasIndex(t => t.Status);
+        });
+
+        builder.Entity<ApprovalStep>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "ApprovalSteps", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(s => s.ReviewCaseId);
+            b.HasIndex(s => s.TenantId);
+            b.HasIndex(s => s.Status);
+        });
+
+        builder.Entity<ReviewComment>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "ReviewComments", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(c => c.ReviewCaseId);
+            b.HasIndex(c => c.TenantId);
+        });
+
+        builder.Entity<EscalationEvent>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "EscalationEvents", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(e => e.ReviewCaseId);
+            b.HasIndex(e => e.TenantId);
+            b.HasIndex(e => e.Severity);
+        });
+
+        builder.Entity<ContractObligation>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "ContractObligations", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(o => o.TenantId);
+            b.HasIndex(o => o.ContractId);
+            b.HasIndex(o => o.Status);
+            b.HasIndex(o => o.DueDate);
+        });
+
+        builder.Entity<RenewalSchedule>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "RenewalSchedules", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(r => r.ContractId);
+            b.HasIndex(r => r.TenantId);
+            b.HasIndex(r => r.Status);
+        });
+
+        builder.Entity<ObligationReminder>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "ObligationReminders", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(r => r.ObligationId);
+            b.HasIndex(r => r.TenantId);
+            b.HasIndex(r => r.ReminderDate);
+        });
+
+        builder.Entity<CompletionEvidence>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "CompletionEvidence", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(e => e.ObligationId);
+            b.HasIndex(e => e.TenantId);
         });
     }
 }

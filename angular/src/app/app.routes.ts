@@ -28,4 +28,28 @@ export const APP_ROUTES: Routes = [
     data: { requiredPolicy: 'LegalTech.Contracts' },
     loadChildren: () => import('./contracts/contracts.routes').then(c => c.CONTRACTS_ROUTES),
   },
+  {
+    path: 'clauses',
+    canActivate: [permissionGuard],
+    data: { requiredPolicy: 'LegalTech.Clauses' },
+    loadChildren: () => import('./clauses/clauses.routes').then(c => c.CLAUSES_ROUTES),
+  },
+  {
+    path: 'playbooks',
+    canActivate: [permissionGuard],
+    data: { requiredPolicy: 'LegalTech.Clauses.Playbooks' },
+    loadChildren: () => import('./playbooks/playbooks.routes').then(c => c.PLAYBOOKS_ROUTES),
+  },
+  {
+    path: 'reviews',
+    canActivate: [permissionGuard],
+    data: { requiredPolicy: 'LegalTech.Reviews' },
+    loadChildren: () => import('./reviews/reviews.routes').then(c => c.REVIEWS_ROUTES),
+  },
+  {
+    path: 'obligations',
+    canActivate: [permissionGuard],
+    data: { requiredPolicy: 'LegalTech.Obligations' },
+    loadChildren: () => import('./obligations/obligations.routes').then(c => c.OBLIGATIONS_ROUTES),
+  },
 ];
