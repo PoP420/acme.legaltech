@@ -36,7 +36,8 @@ public class ContractObligation : FullAuditedAggregateRoot<Guid>, IMultiTenant
         string? sourceClauseReference = null,
         bool isRecurring = false,
         string? recurrencePattern = null,
-        int priority = 0)
+        int priority = 0,
+        string? status = null)
         : base(id)
     {
         TenantId = tenantId;
@@ -48,7 +49,7 @@ public class ContractObligation : FullAuditedAggregateRoot<Guid>, IMultiTenant
         IsRecurring = isRecurring;
         RecurrencePattern = recurrencePattern;
         Priority = priority;
-        Status = ObligationStatus.Pending.ToString();
+        Status = status ?? ObligationStatus.Pending.ToString();
     }
 
     public void MarkAsComplete()
