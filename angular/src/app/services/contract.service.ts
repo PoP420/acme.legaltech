@@ -10,6 +10,8 @@ export interface ContractCreateRequest {
   effectiveDate?: string;
   expirationDate?: string;
   ownerUserId?: string;
+  tags?: Array<{ name: string }>;
+  counterparties?: Array<{ name: string; externalReference?: string }>;
 }
 
 export interface ContractDto {
@@ -22,6 +24,8 @@ export interface ContractDto {
   expirationDate?: string | null;
   ownerUserId?: string | null;
   riskBaseline?: string | null;
+  tags?: Array<{ id: string; name: string }>;
+  counterparties?: Array<{ id: string; name: string; externalReference?: string }>;
 }
 
 export interface GetContractsInput {
@@ -56,6 +60,25 @@ export class ContractService {
     return this.restService.request<ContractCreateRequest, ContractDto>({
       method: 'POST',
       url: '/api/app/contract',
+      body: input,
+    }, {
+      apiName: this.apiName,
+    });
+  }
+
+  get(id: string): Observable<ContractDto> {
+    return this.restService.request<null, ContractDto>({
+      method: 'GET',
+      url: `/api/app/contract/${id}`,
+    }, {
+      apiName: this.apiName,
+    });
+  }
+
+  update(id: string, input: Partial<ContractCreateRequest>): Observable<ContractDto> {
+    return this.restService.request<Partial<ContractCreateRequest>, ContractDto>({
+      method: 'PUT',
+      url: `/api/app/contract/${id}`,
       body: input,
     }, {
       apiName: this.apiName,
