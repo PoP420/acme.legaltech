@@ -154,11 +154,7 @@ export class ReviewsService {
   }
 
   assign(id: string, userId: string): Observable<void> {
-<<<<<<< HEAD
     return this.restService.request<any, void>({
-=======
-    return this.restService.request<void, void>({
->>>>>>> 9a366cd2c241dd347888a3c2f3176fc7686e7608
       method: 'PUT',
       url: `/api/app/review/${id}/assign`,
       body: { userId },

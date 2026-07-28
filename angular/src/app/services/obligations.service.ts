@@ -50,7 +50,6 @@ export interface ContractObligationGetListInput {
 
 @Injectable({
   providedIn: 'root'
-<<<<<<< HEAD
 })
 export class ObligationsService {
   private readonly apiName = 'default';
@@ -105,6 +104,3 @@ export class ObligationsService {
     });
   }
 }
-=======
-})
->>>>>>> 9a366cd2c241dd347888a3c2f3176fc7686e7608
