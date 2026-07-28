@@ -108,7 +108,7 @@ export class ReviewsService {
   getList(input: ReviewCaseGetListInput = {}): Observable<PagedResultDto<ReviewCaseDto>> {
     return this.restService.request<null, PagedResultDto<ReviewCaseDto>>({
       method: 'GET',
-      url: '/api/app/review',
+      url: '/api/app/review-case',
       params: {
         maxResultCount: input.maxResultCount ?? 10,
         skipCount: input.skipCount ?? 0,
@@ -127,7 +127,7 @@ export class ReviewsService {
   create(input: ReviewCaseCreateDto): Observable<ReviewCaseDto> {
     return this.restService.request<ReviewCaseCreateDto, ReviewCaseDto>({
       method: 'POST',
-      url: '/api/app/review',
+      url: '/api/app/review-case',
       body: input,
     }, {
       apiName: this.apiName,
@@ -137,7 +137,7 @@ export class ReviewsService {
   update(id: string, input: ReviewCaseUpdateDto): Observable<ReviewCaseDto> {
     return this.restService.request<ReviewCaseUpdateDto, ReviewCaseDto>({
       method: 'PUT',
-      url: `/api/app/review/${id}`,
+      url: `/api/app/review-case/${id}`,
       body: input,
     }, {
       apiName: this.apiName,
@@ -147,7 +147,7 @@ export class ReviewsService {
   delete(id: string): Observable<void> {
     return this.restService.request<void, void>({
       method: 'DELETE',
-      url: `/api/app/review/${id}`,
+      url: `/api/app/review-case/${id}`,
     }, {
       apiName: this.apiName,
     });
@@ -156,7 +156,7 @@ export class ReviewsService {
   assign(id: string, userId: string): Observable<void> {
     return this.restService.request<void, void>({
       method: 'PUT',
-      url: `/api/app/review/${id}/assign`,
+      url: `/api/app/review-case/${id}/assign`,
       body: { userId },
     }, {
       apiName: this.apiName,
@@ -166,7 +166,7 @@ export class ReviewsService {
   escalate(id: string, reason: string, severity: string): Observable<void> {
     return this.restService.request<any, void>({
       method: 'PUT',
-      url: `/api/app/review/${id}/escalate`,
+      url: `/api/app/review-case/${id}/escalate`,
       body: { reason, severity },
     }, {
       apiName: this.apiName,
@@ -176,7 +176,7 @@ export class ReviewsService {
   complete(id: string): Observable<void> {
     return this.restService.request<void, void>({
       method: 'PUT',
-      url: `/api/app/review/${id}/complete`,
+      url: `/api/app/review-case/${id}/complete`,
     }, {
       apiName: this.apiName,
     });

@@ -37,7 +37,7 @@ export const APP_ROUTES: Routes = [
   {
     path: 'playbooks',
     canActivate: [permissionGuard],
-    data: { requiredPolicy: 'LegalTech.Playbooks' },
+    data: { requiredPolicy: 'LegalTech.Clauses.Playbooks' },
     loadChildren: () => import('./playbooks/playbooks.routes').then(c => c.PLAYBOOKS_ROUTES),
   },
   {
