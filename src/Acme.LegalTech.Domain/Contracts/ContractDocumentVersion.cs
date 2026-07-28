@@ -31,7 +31,8 @@ public class ContractDocumentVersion : Entity<Guid>, IMultiTenant
         string contentType,
         long fileSize,
         Guid? uploadedById,
-        string? changeNote = null)
+        string? changeNote = null,
+        bool? isLatest = null)
         : base(id)
     {
         TenantId = tenantId;
@@ -43,7 +44,7 @@ public class ContractDocumentVersion : Entity<Guid>, IMultiTenant
         FileSize = fileSize;
         UploadedById = uploadedById;
         UploadedAt = DateTime.Now;
-        IsLatest = true;
+        IsLatest = isLatest ?? true;
         ChangeNote = changeNote;
     }
 

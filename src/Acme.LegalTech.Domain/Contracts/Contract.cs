@@ -24,11 +24,17 @@ public class Contract : FullAuditedAggregateRoot<Guid>, IMultiTenant
 
     public Contract() { }
 
-    public Contract(Guid id, string title, string counterpartyName) : base(id)
+    public Contract(Guid id, string title, string counterpartyName, ContractStatus? status = null, DateTime? effectiveDate = null, DateTime? expirationDate = null, Guid? ownerUserId = null, string? category = null, string? riskBaseline = null, string? documentBlobName = null) : base(id)
     {
         Title = title;
         CounterpartyName = counterpartyName;
-        Status = ContractStatus.Draft;
+        Status = status ?? ContractStatus.Draft;
+        EffectiveDate = effectiveDate;
+        ExpirationDate = expirationDate;
+        OwnerUserId = ownerUserId;
+        Category = category;
+        RiskBaseline = riskBaseline;
+        DocumentBlobName = documentBlobName;
     }
 
     public void UpdateDetails(string title, string counterpartyName)
