@@ -154,7 +154,7 @@ export class ReviewsService {
   }
 
   assign(id: string, userId: string): Observable<void> {
-    return this.restService.request<void, void>({
+    return this.restService.request<any, void>({
       method: 'PUT',
       url: `/api/app/review/${id}/assign`,
       body: { userId },

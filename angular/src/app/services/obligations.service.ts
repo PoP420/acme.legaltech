@@ -51,3 +51,56 @@ export interface ContractObligationGetListInput {
 @Injectable({
   providedIn: 'root'
 })
+export class ObligationsService {
+  private readonly apiName = 'default';
+
+  constructor(private restService: RestService) {}
+
+  getList(input: ContractObligationGetListInput = {}): Observable<PagedResultDto<ContractObligationDto>> {
+    return this.restService.request<null, PagedResultDto<ContractObligationDto>>({
+      method: 'GET',
+      url: '/api/app/obligation',
+      params: {
+        maxResultCount: input.maxResultCount ?? 10,
+        skipCount: input.skipCount ?? 0,
+        ...(input.sorting ? { sorting: input.sorting } : {}),
+        ...(input.filter ? { filter: input.filter } : {}),
+        ...(input.status ? { status: input.status } : {}),
+        ...(input.contractId ? { contractId: input.contractId } : {}),
+        ...(input.dueDateFrom ? { dueDateFrom: input.dueDateFrom } : {}),
+        ...(input.dueDateTo ? { dueDateTo: input.dueDateTo } : {}),
+      },
+    }, {
+      apiName: this.apiName,
+    });
+  }
+
+  create(input: ContractObligationCreateDto): Observable<ContractObligationDto> {
+    return this.restService.request<ContractObligationCreateDto, ContractObligationDto>({
+      method: 'POST',
+      url: '/api/app/obligation',
+      body: input,
+    }, {
+      apiName: this.apiName,
+    });
+  }
+
+  update(id: string, input: ContractObligationUpdateDto): Observable<ContractObligationDto> {
+    return this.restService.request<ContractObligationUpdateDto, ContractObligationDto>({
+      method: 'PUT',
+      url: `/api/app/obligation/${id}`,
+      body: input,
+    }, {
+      apiName: this.apiName,
+    });
+  }
+
+  delete(id: string): Observable<void> {
+    return this.restService.request<void, void>({
+      method: 'DELETE',
+      url: `/api/app/obligation/${id}`,
+    }, {
+      apiName: this.apiName,
+    });
+  }
+}
