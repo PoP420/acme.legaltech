@@ -59,7 +59,7 @@ export class ObligationsService {
   getList(input: ContractObligationGetListInput = {}): Observable<PagedResultDto<ContractObligationDto>> {
     return this.restService.request<null, PagedResultDto<ContractObligationDto>>({
       method: 'GET',
-      url: '/api/app/obligation',
+      url: '/api/app/contract-obligation',
       params: {
         maxResultCount: input.maxResultCount ?? 10,
         skipCount: input.skipCount ?? 0,
@@ -78,7 +78,7 @@ export class ObligationsService {
   create(input: ContractObligationCreateDto): Observable<ContractObligationDto> {
     return this.restService.request<ContractObligationCreateDto, ContractObligationDto>({
       method: 'POST',
-      url: '/api/app/obligation',
+      url: '/api/app/contract-obligation',
       body: input,
     }, {
       apiName: this.apiName,
@@ -88,7 +88,7 @@ export class ObligationsService {
   update(id: string, input: ContractObligationUpdateDto): Observable<ContractObligationDto> {
     return this.restService.request<ContractObligationUpdateDto, ContractObligationDto>({
       method: 'PUT',
-      url: `/api/app/obligation/${id}`,
+      url: `/api/app/contract-obligation/${id}`,
       body: input,
     }, {
       apiName: this.apiName,
@@ -98,7 +98,7 @@ export class ObligationsService {
   delete(id: string): Observable<void> {
     return this.restService.request<void, void>({
       method: 'DELETE',
-      url: `/api/app/obligation/${id}`,
+      url: `/api/app/contract-obligation/${id}`,
     }, {
       apiName: this.apiName,
     });

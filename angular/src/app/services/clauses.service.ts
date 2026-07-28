@@ -59,7 +59,7 @@ export class ClausesService {
   getList(input: ClauseGetListInput = {}): Observable<PagedResultDto<ClauseTemplateDto>> {
     return this.restService.request<null, PagedResultDto<ClauseTemplateDto>>({
       method: 'GET',
-      url: '/api/app/clause',
+      url: '/api/app/clause-template',
       params: {
         maxResultCount: input.maxResultCount ?? 10,
         skipCount: input.skipCount ?? 0,
@@ -78,7 +78,7 @@ export class ClausesService {
   create(input: ClauseTemplateCreateDto): Observable<ClauseTemplateDto> {
     return this.restService.request<ClauseTemplateCreateDto, ClauseTemplateDto>({
       method: 'POST',
-      url: '/api/app/clause',
+      url: '/api/app/clause-template',
       body: input,
     }, {
       apiName: this.apiName,

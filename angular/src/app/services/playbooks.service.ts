@@ -66,7 +66,7 @@ export class PlaybooksService {
   getList(input: { maxResultCount?: number; skipCount?: number; sorting?: string } = {}): Observable<PagedResultDto<PlaybookProfileDto>> {
     return this.restService.request<null, PagedResultDto<PlaybookProfileDto>>({
       method: 'GET',
-      url: '/api/app/playbook',
+      url: '/api/app/playbook-profile',
       params: {
         maxResultCount: input.maxResultCount ?? 10,
         skipCount: input.skipCount ?? 0,
@@ -80,7 +80,7 @@ export class PlaybooksService {
   create(input: PlaybookProfileCreateDto): Observable<PlaybookProfileDto> {
     return this.restService.request<PlaybookProfileCreateDto, PlaybookProfileDto>({
       method: 'POST',
-      url: '/api/app/playbook',
+      url: '/api/app/playbook-profile',
       body: input,
     }, {
       apiName: this.apiName,
