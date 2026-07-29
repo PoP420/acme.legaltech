@@ -90,7 +90,7 @@ export class PlaybooksService {
   update(id: string, input: PlaybookProfileUpdateDto): Observable<PlaybookProfileDto> {
     return this.restService.request<PlaybookProfileUpdateDto, PlaybookProfileDto>({
       method: 'PUT',
-      url: `/api/app/playbook/${id}`,
+      url: `/api/app/playbook-profile/${id}`,
       body: input,
     }, {
       apiName: this.apiName,
@@ -100,7 +100,7 @@ export class PlaybooksService {
   delete(id: string): Observable<void> {
     return this.restService.request<void, void>({
       method: 'DELETE',
-      url: `/api/app/playbook/${id}`,
+      url: `/api/app/playbook-profile/${id}`,
     }, {
       apiName: this.apiName,
     });
@@ -109,7 +109,7 @@ export class PlaybooksService {
   evaluate(input: PlaybookEvaluateInput): Observable<PlaybookEvaluationResultDto[]> {
     return this.restService.request<PlaybookEvaluateInput, PlaybookEvaluationResultDto[]>({
       method: 'POST',
-      url: '/api/app/playbook/evaluate',
+      url: '/api/app/playbook-profile/evaluate',
       body: input,
     }, {
       apiName: this.apiName,

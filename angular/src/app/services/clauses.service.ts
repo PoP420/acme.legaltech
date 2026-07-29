@@ -88,7 +88,7 @@ export class ClausesService {
   update(id: string, input: ClauseTemplateUpdateDto): Observable<ClauseTemplateDto> {
     return this.restService.request<ClauseTemplateUpdateDto, ClauseTemplateDto>({
       method: 'PUT',
-      url: `/api/app/clause/${id}`,
+      url: `/api/app/clause-template/${id}`,
       body: input,
     }, {
       apiName: this.apiName,
@@ -98,7 +98,7 @@ export class ClausesService {
   delete(id: string): Observable<void> {
     return this.restService.request<void, void>({
       method: 'DELETE',
-      url: `/api/app/clause/${id}`,
+      url: `/api/app/clause-template/${id}`,
     }, {
       apiName: this.apiName,
     });
