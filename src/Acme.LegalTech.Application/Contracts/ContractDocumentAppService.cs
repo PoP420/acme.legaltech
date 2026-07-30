@@ -19,6 +19,7 @@ using Volo.Abp.MultiTenancy;
 
 namespace Acme.LegalTech.Contracts;
 
+[RemoteService(false)]
 [Authorize(LegalTechPermissions.Contracts.Default)]
 public class ContractDocumentAppService : ApplicationService, IContractDocumentAppService
 {
@@ -68,22 +69,30 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
     [Authorize(LegalTechPermissions.Contracts.Default)]
     public async Task<ContractDocumentVersionDto> GetAsync(Guid id)
     {
-        var version = await _documentVersionRepository.GetAsync(id);
-        var dto = Mappers.MapToContractDocumentVersionDto(version);
-        
-        var extraction = await _documentExtractionRepository.FirstOrDefaultAsync(e => e.ContractDocumentVersionId == id);
-        if (extraction != null)
+        try
         {
-            dto.ExtractionStatus = extraction.Status;
-            dto.ExtractedTitle = extraction.ExtractedTitle;
-            dto.ExtractedCounterparty = extraction.ExtractedCounterparty;
-            dto.ExtractedEffectiveDate = extraction.ExtractedEffectiveDate;
-            dto.ExtractedExpirationDate = extraction.ExtractedExpirationDate;
-            dto.ExtractedCategory = extraction.ExtractedCategory;
-            dto.ExtractedRiskBaseline = extraction.ExtractedRiskBaseline;
+            var version = await _documentVersionRepository.GetAsync(id);
+            var dto = Mappers.MapToContractDocumentVersionDto(version);
+            
+            var extraction = await _documentExtractionRepository.FirstOrDefaultAsync(e => e.ContractDocumentVersionId == id);
+            if (extraction != null)
+            {
+                dto.ExtractionStatus = extraction.Status;
+                dto.ExtractedTitle = extraction.ExtractedTitle;
+                dto.ExtractedCounterparty = extraction.ExtractedCounterparty;
+                dto.ExtractedEffectiveDate = extraction.ExtractedEffectiveDate;
+                dto.ExtractedExpirationDate = extraction.ExtractedExpirationDate;
+                dto.ExtractedCategory = extraction.ExtractedCategory;
+                dto.ExtractedRiskBaseline = extraction.ExtractedRiskBaseline;
+            }
+            
+            return dto;
         }
-        
-        return dto;
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unhandled exception in GetAsync");
+            throw;
+        }
     }
 
     [Authorize(LegalTechPermissions.Contracts.AttachDocument)]
@@ -92,74 +101,45 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
         Logger.LogInformation("UploadAsync called for contractId: {ContractId}, FileName: {FileName}, ContentType: {ContentType}, ChangeNote: {ChangeNote}",
             contractId, input.File?.FileName, input.File?.ContentType, input.ChangeNote);
 
-        if (input.File == null)
-        {
-            Logger.LogError("File is null in upload request");
-            throw new BusinessException("LegalTech:Contract:FileRequired");
-        }
-
-        var contract = await _contractRepository.FindAsync(contractId);
-        if (contract == null)
-        {
-            Logger.LogError("Contract not found for upload: {ContractId}", contractId);
-            throw new BusinessException("LegalTech:Contract:NotFound")
-            {
-                Data = { ["ContractId"] = contractId.ToString() }
-            };
-        }
-
-        var stream = input.File.GetStream();
-        if (stream == null)
-        {
-            Logger.LogError("File stream is null in upload request");
-            throw new BusinessException("LegalTech:Contract:UnsupportedFileType")
-            {
-                Data = { ["Extension"] = string.Empty }
-            };
-        }
-
-        if (stream.Length == 0)
-        {
-            throw new BusinessException("LegalTech:Contract:UnsupportedFileType")
-            {
-                Data = { ["Extension"] = string.Empty }
-            };
-        }
-
-        var extension = Path.GetExtension(input.File.FileName);
-        if (extension.IsNullOrWhiteSpace() || !AllowedExtensions.Contains(extension))
-        {
-            throw new BusinessException("LegalTech:Contract:UnsupportedFileType")
-            {
-                Data = { ["Extension"] = extension }
-            };
-        }
-
-        var contentType = ContentTypeMap.GetValueOrDefault(extension, input.File.ContentType ?? "application/octet-stream");
-
-        var blobName = $"contracts/{contractId}/{Guid.NewGuid()}{extension}";
-
-        var fileSize = stream.Length;
-        
-        Logger.LogInformation("Saving blob to container: {BlobName}, FileSize: {FileSize}", blobName, fileSize);
         try
         {
+            if (input.File == null)
+            {
+                Logger.LogError("File is null in upload request");
+                throw new BusinessException("LegalTech:Contract:FileRequired");
+            }
+
+            var contract = await _contractRepository.GetAsync(contractId);
+
+            if (input.File.GetStream().Length == 0)
+            {
+                throw new BusinessException("LegalTech:Contract:UnsupportedFileType")
+                {
+                    Data = { ["Extension"] = string.Empty }
+                };
+            }
+
+            var extension = Path.GetExtension(input.File.FileName);
+            if (extension.IsNullOrWhiteSpace() || !AllowedExtensions.Contains(extension))
+            {
+                throw new BusinessException("LegalTech:Contract:UnsupportedFileType")
+                {
+                    Data = { ["Extension"] = extension }
+                };
+            }
+
+            var contentType = ContentTypeMap.GetValueOrDefault(extension, input.File.ContentType ?? "application/octet-stream");
+
+            var blobName = $"contracts/{contractId}/{Guid.NewGuid()}{extension}";
+
+            using var stream = input.File.GetStream();
+            var fileSize = stream.Length;
+            
+            Logger.LogInformation("Saving blob to container: {BlobName}, FileSize: {FileSize}", blobName, fileSize);
             await _blobContainer.SaveAsync(blobName, stream);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to save blob for document version {BlobName}", blobName);
-            throw new BusinessException("LegalTech:Contract:UploadFailed")
-            {
-                Data = { ["FileName"] = input.File.FileName }
-            };
-        }
-        
-        Logger.LogInformation("Blob saved successfully: {BlobName}", blobName);
+            
+            Logger.LogInformation("Blob saved successfully: {BlobName}", blobName);
 
-        ContractDocumentVersion newVersion;
-        try
-        {
             var versions = await _documentVersionRepository.GetListAsync(v => v.ContractId == contractId);
             var nextVersion = versions.Any() ? versions.Max(v => v.VersionNumber) + 1 : 1;
 
@@ -169,85 +149,79 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
                 await _documentVersionRepository.UpdateAsync(v);
             }
 
-            newVersion = new ContractDocumentVersion(
+            var newVersion = new ContractDocumentVersion(
                 Guid.NewGuid(),
                 _currentTenant.Id,
                 contractId,
                 nextVersion,
                 blobName,
-                input.File.FileName ?? string.Empty,
+                input.File.FileName,
                 contentType,
                 fileSize,
                 CurrentUser.Id,
                 input.ChangeNote);
 
-            await _documentVersionRepository.InsertAsync(newVersion);
+            var saved = await _documentVersionRepository.InsertAsync(newVersion);
+
+            var savedDto = Mappers.MapToContractDocumentVersionDto(saved);
+
+            try
+            {
+                input.File.GetStream().Position = 0;
+                var extractionResult = await _documentExtractionProvider.ExtractAsync(input.File, contentType);
+                var extraction = new DocumentExtraction(
+                    Guid.NewGuid(),
+                    _currentTenant.Id,
+                    saved.Id,
+                    extractionResult.ProviderName ?? "Unknown",
+                    extractionResult);
+
+                await _documentExtractionRepository.InsertAsync(extraction);
+
+                if (extractionResult.IsSuccess)
+                {
+                    savedDto.ExtractionStatus = "Success";
+                    savedDto.ExtractedTitle = extractionResult.ExtractedTitle;
+                    savedDto.ExtractedCounterparty = extractionResult.ExtractedCounterparty;
+                    savedDto.ExtractedEffectiveDate = extractionResult.ExtractedEffectiveDate;
+                    savedDto.ExtractedExpirationDate = extractionResult.ExtractedExpirationDate;
+                    savedDto.ExtractedCategory = extractionResult.ExtractedCategory;
+                    savedDto.ExtractedRiskBaseline = extractionResult.ExtractedRiskBaseline;
+                }
+                else
+                {
+                    savedDto.ExtractionStatus = "Failed";
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to run document extraction for document version {VersionId}", saved.Id);
+                savedDto.ExtractionStatus = "Error";
+            }
+
+            return savedDto;
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to save document version for contract {ContractId}", contractId);
-            throw new BusinessException("LegalTech:Contract:UploadFailed")
-            {
-                Data = { ["ContractId"] = contractId.ToString() }
-            };
+            Logger.LogError(ex, "Unhandled exception in UploadAsync");
+            throw;
         }
-
-        var savedDto = Mappers.MapToContractDocumentVersionDto(newVersion);
-
-        try
-        {
-            if (stream.CanSeek)
-            {
-                stream.Position = 0;
-            }
-            var extractionResult = await _documentExtractionProvider.ExtractAsync(input.File, contentType);
-            var extraction = new DocumentExtraction(
-                Guid.NewGuid(),
-                _currentTenant.Id,
-                newVersion.Id,
-                extractionResult.ProviderName ?? "Unknown",
-                extractionResult);
-
-            await _documentExtractionRepository.InsertAsync(extraction);
-
-            if (extractionResult.IsSuccess)
-            {
-                savedDto.ExtractionStatus = "Success";
-                savedDto.ExtractedTitle = extractionResult.ExtractedTitle;
-                savedDto.ExtractedCounterparty = extractionResult.ExtractedCounterparty;
-                savedDto.ExtractedEffectiveDate = extractionResult.ExtractedEffectiveDate;
-                savedDto.ExtractedExpirationDate = extractionResult.ExtractedExpirationDate;
-                savedDto.ExtractedCategory = extractionResult.ExtractedCategory;
-                savedDto.ExtractedRiskBaseline = extractionResult.ExtractedRiskBaseline;
-            }
-            else
-            {
-                savedDto.ExtractionStatus = "Failed";
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to run document extraction for document version {VersionId}", newVersion.Id);
-            savedDto.ExtractionStatus = "Error";
-        }
-
-        return savedDto;
     }
 
     [Authorize(LegalTechPermissions.Contracts.Default)]
     public async Task<ListResultDto<ContractDocumentVersionDto>> GetVersionsAsync(Guid contractId)
     {
-        var contract = await _contractRepository.FindAsync(contractId);
-        if (contract == null)
-        {
-            throw new BusinessException("LegalTech:Contract:NotFound")
-            {
-                Data = { ["ContractId"] = contractId }
-            };
-        }
-
         try
         {
+            var contract = await _contractRepository.FindAsync(contractId);
+            if (contract == null)
+            {
+                throw new BusinessException("LegalTech:Contract:NotFound")
+                {
+                    Data = { ["ContractId"] = contractId }
+                };
+            }
+
             var versions = await _documentVersionRepository.GetListAsync(v => v.ContractId == contractId);
             var sorted = versions.OrderByDescending(v => v.VersionNumber).ToList();
             
@@ -275,62 +249,40 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to get document versions for contract {ContractId}", contractId);
-            return new ListResultDto<ContractDocumentVersionDto>(new List<ContractDocumentVersionDto>());
+            Logger.LogError(ex, "Unhandled exception in GetVersionsAsync");
+            throw;
         }
     }
 
     [Authorize(LegalTechPermissions.Contracts.Default)]
     public async Task<IRemoteStreamContent> DownloadAsync(Guid versionId)
     {
-        var version = await _documentVersionRepository.FindAsync(versionId);
-        if (version == null)
-        {
-            throw new BusinessException("LegalTech:Contract:DocumentVersionNotFound")
-            {
-                Data = { ["VersionId"] = versionId.ToString() }
-            };
-        }
-
         try
         {
+            var version = await _documentVersionRepository.GetAsync(versionId);
             var stream = await _blobContainer.GetAsync(version.BlobName);
             return new RemoteStreamContent(stream, version.FileName, version.ContentType);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to download document version {VersionId}", versionId);
-            throw new BusinessException("LegalTech:Contract:DownloadFailed")
-            {
-                Data = { ["VersionId"] = versionId.ToString() }
-            };
+            Logger.LogError(ex, "Unhandled exception in DownloadAsync");
+            throw;
         }
     }
 
     [Authorize(LegalTechPermissions.Contracts.AttachDocument)]
     public async Task DeleteVersionAsync(Guid versionId)
     {
-        var version = await _documentVersionRepository.FindAsync(versionId);
-        if (version == null)
-        {
-            throw new BusinessException("LegalTech:Contract:DocumentVersionNotFound")
-            {
-                Data = { ["VersionId"] = versionId.ToString() }
-            };
-        }
-
         try
         {
+            var version = await _documentVersionRepository.GetAsync(versionId);
             await _documentVersionRepository.DeleteAsync(version);
             await _blobContainer.DeleteAsync(version.BlobName);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to delete document version {VersionId}", versionId);
-            throw new BusinessException("LegalTech:Contract:DeleteFailed")
-            {
-                Data = { ["VersionId"] = versionId.ToString() }
-            };
+            Logger.LogError(ex, "Unhandled exception in DeleteVersionAsync");
+            throw;
         }
     }
 }
