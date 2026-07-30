@@ -98,9 +98,27 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
             throw new BusinessException("LegalTech:Contract:FileRequired");
         }
 
-        var contract = await _contractRepository.GetAsync(contractId);
+        var contract = await _contractRepository.FindAsync(contractId);
+        if (contract == null)
+        {
+            Logger.LogError("Contract not found for upload: {ContractId}", contractId);
+            throw new BusinessException("LegalTech:Contract:NotFound")
+            {
+                Data = { ["ContractId"] = contractId.ToString() }
+            };
+        }
 
-        if (input.File.GetStream().Length == 0)
+        var stream = input.File.GetStream();
+        if (stream == null)
+        {
+            Logger.LogError("File stream is null in upload request");
+            throw new BusinessException("LegalTech:Contract:UnsupportedFileType")
+            {
+                Data = { ["Extension"] = string.Empty }
+            };
+        }
+
+        if (stream.Length == 0)
         {
             throw new BusinessException("LegalTech:Contract:UnsupportedFileType")
             {
@@ -121,7 +139,6 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
 
         var blobName = $"contracts/{contractId}/{Guid.NewGuid()}{extension}";
 
-        using var stream = input.File.GetStream();
         var fileSize = stream.Length;
         
         Logger.LogInformation("Saving blob to container: {BlobName}, FileSize: {FileSize}", blobName, fileSize);
@@ -144,7 +161,7 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
             contractId,
             nextVersion,
             blobName,
-            input.File.FileName,
+            input.File.FileName ?? string.Empty,
             contentType,
             fileSize,
             CurrentUser.Id,
@@ -156,7 +173,10 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
 
         try
         {
-            input.File.GetStream().Position = 0;
+            if (stream.CanSeek)
+            {
+                stream.Position = 0;
+            }
             var extractionResult = await _documentExtractionProvider.ExtractAsync(input.File, contentType);
             var extraction = new DocumentExtraction(
                 Guid.NewGuid(),
@@ -203,6 +223,7 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
             };
         }
 
+<<<<<<< ours
         var versions = await _documentVersionRepository.GetListAsync(v => v.ContractId == contractId);
         var sorted = versions.OrderByDescending(v => v.VersionNumber).ToList();
         
@@ -227,12 +248,33 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
         }
         
         return new ListResultDto<ContractDocumentVersionDto>(dtos);
+=======
+        try
+        {
+            var versions = await _documentVersionRepository.GetListAsync(v => v.ContractId == contractId);
+            var sorted = versions.OrderByDescending(v => v.VersionNumber).ToList();
+            return new ListResultDto<ContractDocumentVersionDto>(sorted.Select(Mappers.MapToContractDocumentVersionDto).ToList());
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to get document versions for contract {ContractId}", contractId);
+            return new ListResultDto<ContractDocumentVersionDto>(new List<ContractDocumentVersionDto>());
+        }
+>>>>>>> theirs
     }
 
     [Authorize(LegalTechPermissions.Contracts.Default)]
     public async Task<IRemoteStreamContent> DownloadAsync(Guid versionId)
     {
-        var version = await _documentVersionRepository.GetAsync(versionId);
+        var version = await _documentVersionRepository.FindAsync(versionId);
+        if (version == null)
+        {
+            throw new BusinessException("LegalTech:Contract:DocumentVersionNotFound")
+            {
+                Data = { ["VersionId"] = versionId.ToString() }
+            };
+        }
+
         var stream = await _blobContainer.GetAsync(version.BlobName);
         return new RemoteStreamContent(stream, version.FileName, version.ContentType);
     }
@@ -240,7 +282,15 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
     [Authorize(LegalTechPermissions.Contracts.AttachDocument)]
     public async Task DeleteVersionAsync(Guid versionId)
     {
-        var version = await _documentVersionRepository.GetAsync(versionId);
+        var version = await _documentVersionRepository.FindAsync(versionId);
+        if (version == null)
+        {
+            throw new BusinessException("LegalTech:Contract:DocumentVersionNotFound")
+            {
+                Data = { ["VersionId"] = versionId.ToString() }
+            };
+        }
+
         await _documentVersionRepository.DeleteAsync(version);
         await _blobContainer.DeleteAsync(version.BlobName);
     }
