@@ -1,8 +1,9 @@
 import { Component } from '@angular/core';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, ParamMap } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormArray } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 import { ContractService, ContractDto } from '../services/contract.service';
-import { switchMap } from 'rxjs';
+import { switchMap, EMPTY } from 'rxjs';
 
 @Component({
   selector: 'app-create-or-edit-contract',
@@ -66,7 +67,7 @@ import { switchMap } from 'rxjs';
       </form>
     </div>
   `,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, CommonModule],
 })
 export class CreateOrEditContractComponent {
   form: FormGroup;
@@ -123,7 +124,7 @@ export class CreateOrEditContractComponent {
 
   private loadContractIfEdit() {
     this.route.paramMap.pipe(
-      switchMap(params => {
+      switchMap((params: ParamMap) => {
         const id = params.get('id');
         if (id) {
           this.isEdit = true;
@@ -132,9 +133,9 @@ export class CreateOrEditContractComponent {
         }
         this.isEdit = false;
         this.editingId = null;
-        return null;
+        return EMPTY;
       }),
-    ).subscribe(contract => {
+    ).subscribe((contract: ContractDto) => {
       if (contract) {
         this.patchForm(contract);
       }
