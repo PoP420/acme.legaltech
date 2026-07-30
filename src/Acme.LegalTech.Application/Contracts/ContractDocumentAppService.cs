@@ -160,6 +160,15 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
     [Authorize(LegalTechPermissions.Contracts.Default)]
     public async Task<ListResultDto<ContractDocumentVersionDto>> GetVersionsAsync(Guid contractId)
     {
+        var contract = await _contractRepository.FindAsync(contractId);
+        if (contract == null)
+        {
+            throw new BusinessException("LegalTech:Contract:NotFound")
+            {
+                Data = { ["ContractId"] = contractId }
+            };
+        }
+
         var versions = await _documentVersionRepository.GetListAsync(v => v.ContractId == contractId);
         var sorted = versions.OrderByDescending(v => v.VersionNumber).ToList();
         return new ListResultDto<ContractDocumentVersionDto>(sorted.Select(Mappers.MapToContractDocumentVersionDto).ToList());
