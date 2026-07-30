@@ -45,7 +45,25 @@ public class LegalTechApplicationMappers
         FileSize = source.FileSize,
         IsLatest = source.IsLatest,
         UploadedById = source.UploadedById,
-        ChangeNote = source.ChangeNote
+        ChangeNote = source.ChangeNote,
+        UploadedAt = source.UploadedAt
+    };
+
+    public DocumentExtractionDto MapToDocumentExtractionDto(DocumentExtraction source) => new()
+    {
+        Id = source.Id,
+        ContractDocumentVersionId = source.ContractDocumentVersionId,
+        ProviderName = source.ProviderName,
+        ExtractedAt = source.ExtractedAt,
+        Status = source.Status,
+        ErrorMessage = source.ErrorMessage,
+        ExtractedTitle = source.ExtractedTitle,
+        ExtractedCounterparty = source.ExtractedCounterparty,
+        ExtractedEffectiveDate = source.ExtractedEffectiveDate,
+        ExtractedExpirationDate = source.ExtractedExpirationDate,
+        ExtractedCategory = source.ExtractedCategory,
+        ExtractedRiskBaseline = source.ExtractedRiskBaseline,
+        ExtractedContractStatus = source.ExtractedContractStatus
     };
 
     public Contract MapToContract(ContractCreateDto source)

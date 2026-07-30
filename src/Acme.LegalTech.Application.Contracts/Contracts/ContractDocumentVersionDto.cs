@@ -15,4 +15,12 @@ public class ContractDocumentVersionDto : EntityDto<Guid>
     public DateTime UploadedAt { get; set; }
     public bool IsLatest { get; set; }
     public string? ChangeNote { get; set; }
+
+    public string? ExtractionStatus { get; set; }
+    public string? ExtractedTitle { get; set; }
+    public string? ExtractedCounterparty { get; set; }
+    public DateTime? ExtractedEffectiveDate { get; set; }
+    public DateTime? ExtractedExpirationDate { get; set; }
+    public string? ExtractedCategory { get; set; }
+    public string? ExtractedRiskBaseline { get; set; }
 }

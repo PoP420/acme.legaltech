@@ -35,6 +35,7 @@ public class LegalTechDbContext :
 
     public DbSet<Contract> Contracts { get; set; }
     public DbSet<ContractDocumentVersion> ContractDocumentVersions { get; set; }
+    public DbSet<DocumentExtraction> DocumentExtractions { get; set; }
     public DbSet<CounterpartyReference> CounterpartyReferences { get; set; }
     public DbSet<ContractTag> ContractTags { get; set; }
     public DbSet<ClauseTemplate> ClauseTemplates { get; set; }
@@ -122,6 +123,15 @@ public class LegalTechDbContext :
 
             b.HasIndex(v => v.ContractId);
             b.HasIndex(v => new { v.ContractId, v.IsLatest }).IsUnique();
+        });
+
+        builder.Entity<DocumentExtraction>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "DocumentExtractions", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(e => e.ContractDocumentVersionId);
+            b.HasIndex(e => new { e.ContractDocumentVersionId, e.ProviderName });
         });
 
         builder.Entity<CounterpartyReference>(b =>
