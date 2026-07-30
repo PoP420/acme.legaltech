@@ -176,10 +176,7 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
         var contract = await _contractRepository.FindAsync(contractId);
         if (contract == null)
         {
-            throw new BusinessException("LegalTech:Contract:NotFound")
-            {
-                Data = { ["ContractId"] = contractId }
-            };
+            return new ListResultDto<ContractDocumentVersionDto>(new List<ContractDocumentVersionDto>());
         }
 
         var versions = await _documentVersionRepository.GetListAsync(v => v.ContractId == contractId);

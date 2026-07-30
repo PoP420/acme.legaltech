@@ -57,6 +57,11 @@ import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatu
 
           <div class="alert alert-danger" *ngIf="versionsError">
             {{ versionsErrorMessage }}
+            <button class="btn btn-sm btn-outline-danger ms-2" (click)="loadVersions(contract!.id!)">Retry</button>
+          </div>
+
+          <div class="alert alert-danger" *ngIf="uploadError">
+            {{ uploadErrorMessage }}
           </div>
 
           <table class="table" *ngIf="versions.length; else noVersions">
@@ -119,6 +124,8 @@ export class ContractDetailComponent {
   uploading = false;
   versionsError = false;
   versionsErrorMessage = '';
+  uploadError = false;
+  uploadErrorMessage = '';
 
   get statusLabel(): string {
     return this.contract ? ContractStatusLabels[this.contract.status as ContractStatus] || String(this.contract.status) : '-';
@@ -142,7 +149,7 @@ export class ContractDetailComponent {
     });
   }
 
-  private loadVersions(contractId: string) {
+  loadVersions(contractId: string) {
     this.versionsError = false;
     this.versionsErrorMessage = '';
     this.contractService.getVersions(contractId).subscribe({
@@ -165,6 +172,8 @@ export class ContractDetailComponent {
   onUpload() {
     if (!this.selectedFile || !this.contract) return;
     this.uploading = true;
+    this.uploadError = false;
+    this.uploadErrorMessage = '';
     this.contractService.upload(this.contract.id, this.selectedFile, this.changeNote || undefined).subscribe({
       next: (version) => {
         this.versions = [version, ...this.versions.filter(v => v.contractId === version.contractId)];
@@ -172,8 +181,10 @@ export class ContractDetailComponent {
         this.changeNote = '';
         this.uploading = false;
       },
-      error: () => {
+      error: (err) => {
         this.uploading = false;
+        this.uploadError = true;
+        this.uploadErrorMessage = err?.message || 'Failed to upload document.';
       },
     });
   }
