@@ -68,6 +68,15 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
     [Authorize(LegalTechPermissions.Contracts.AttachDocument)]
     public async Task<ContractDocumentVersionDto> UploadAsync(Guid contractId, ContractAttachDocumentDto input)
     {
+        Logger.LogInformation("UploadAsync called for contractId: {ContractId}, FileName: {FileName}, ContentType: {ContentType}, ChangeNote: {ChangeNote}",
+            contractId, input.File?.FileName, input.File?.ContentType, input.ChangeNote);
+
+        if (input.File == null)
+        {
+            Logger.LogError("File is null in upload request");
+            throw new BusinessException("LegalTech:Contract:FileRequired");
+        }
+
         var contract = await _contractRepository.GetAsync(contractId);
 
         if (input.File.GetStream().Length == 0)
@@ -93,7 +102,11 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
 
         using var stream = input.File.GetStream();
         var fileSize = stream.Length;
+        
+        Logger.LogInformation("Saving blob to container: {BlobName}, FileSize: {FileSize}", blobName, fileSize);
         await _blobContainer.SaveAsync(blobName, stream);
+        
+        Logger.LogInformation("Blob saved successfully: {BlobName}", blobName);
 
         var versions = await _documentVersionRepository.GetListAsync(v => v.ContractId == contractId);
         var nextVersion = versions.Any() ? versions.Max(v => v.VersionNumber) + 1 : 1;
