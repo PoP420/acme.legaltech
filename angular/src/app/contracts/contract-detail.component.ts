@@ -55,6 +55,10 @@ import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatu
             </button>
           </div>
 
+          <div class="alert alert-danger" *ngIf="versionsError">
+            {{ versionsErrorMessage }}
+          </div>
+
           <table class="table" *ngIf="versions.length; else noVersions">
             <thead>
               <tr>
@@ -113,6 +117,8 @@ export class ContractDetailComponent {
   selectedFile: File | null = null;
   changeNote = '';
   uploading = false;
+  versionsError = false;
+  versionsErrorMessage = '';
 
   get statusLabel(): string {
     return this.contract ? ContractStatusLabels[this.contract.status as ContractStatus] || String(this.contract.status) : '-';
@@ -137,8 +143,17 @@ export class ContractDetailComponent {
   }
 
   private loadVersions(contractId: string) {
-    this.contractService.getVersions(contractId).subscribe(result => {
-      this.versions = result.items ?? [];
+    this.versionsError = false;
+    this.versionsErrorMessage = '';
+    this.contractService.getVersions(contractId).subscribe({
+      next: result => {
+        this.versions = result.items ?? [];
+      },
+      error: err => {
+        this.versionsError = true;
+        this.versionsErrorMessage = err?.message || 'Failed to load document versions.';
+        this.versions = [];
+      },
     });
   }
 
