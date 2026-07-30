@@ -5,8 +5,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Acme.LegalTech.Contracts;
 using Acme.LegalTech.Permissions;
+using Acme.LegalTech.Processing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -22,8 +24,10 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
 {
     private readonly IRepository<Contract, Guid> _contractRepository;
     private readonly IRepository<ContractDocumentVersion, Guid> _documentVersionRepository;
+    private readonly IRepository<DocumentExtraction, Guid> _documentExtractionRepository;
     private readonly IBlobContainer<ContractsBlobContainer> _blobContainer;
     private readonly ICurrentTenant _currentTenant;
+    private readonly IDocumentExtractionProvider _documentExtractionProvider;
 
     private static readonly LegalTechApplicationMappers Mappers = new();
 
@@ -48,13 +52,17 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
     public ContractDocumentAppService(
         IRepository<Contract, Guid> contractRepository,
         IRepository<ContractDocumentVersion, Guid> documentVersionRepository,
+        IRepository<DocumentExtraction, Guid> documentExtractionRepository,
         IBlobContainer<ContractsBlobContainer> blobContainer,
-        ICurrentTenant currentTenant)
+        ICurrentTenant currentTenant,
+        IDocumentExtractionProvider documentExtractionProvider)
     {
         _contractRepository = contractRepository;
         _documentVersionRepository = documentVersionRepository;
+        _documentExtractionRepository = documentExtractionRepository;
         _blobContainer = blobContainer;
         _currentTenant = currentTenant;
+        _documentExtractionProvider = documentExtractionProvider;
     }
 
     [Authorize(LegalTechPermissions.Contracts.AttachDocument)]
@@ -110,7 +118,43 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
 
         var saved = await _documentVersionRepository.InsertAsync(newVersion);
 
-        return Mappers.MapToContractDocumentVersionDto(saved);
+        var savedDto = Mappers.MapToContractDocumentVersionDto(saved);
+
+        try
+        {
+            input.File.GetStream().Position = 0;
+            var extractionResult = await _documentExtractionProvider.ExtractAsync(input.File, contentType);
+            var extraction = new DocumentExtraction(
+                Guid.NewGuid(),
+                _currentTenant.Id,
+                saved.Id,
+                extractionResult.ProviderName ?? "Unknown",
+                extractionResult);
+
+            await _documentExtractionRepository.InsertAsync(extraction);
+
+            if (extractionResult.IsSuccess)
+            {
+                savedDto.ExtractionStatus = "Success";
+                savedDto.ExtractedTitle = extractionResult.ExtractedTitle;
+                savedDto.ExtractedCounterparty = extractionResult.ExtractedCounterparty;
+                savedDto.ExtractedEffectiveDate = extractionResult.ExtractedEffectiveDate;
+                savedDto.ExtractedExpirationDate = extractionResult.ExtractedExpirationDate;
+                savedDto.ExtractedCategory = extractionResult.ExtractedCategory;
+                savedDto.ExtractedRiskBaseline = extractionResult.ExtractedRiskBaseline;
+            }
+            else
+            {
+                savedDto.ExtractionStatus = "Failed";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to run document extraction for document version {VersionId}", saved.Id);
+            savedDto.ExtractionStatus = "Error";
+        }
+
+        return savedDto;
     }
 
     [Authorize(LegalTechPermissions.Contracts.Default)]
