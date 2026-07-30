@@ -158,7 +158,7 @@ export class ContractService {
   deleteVersion(versionId: string) {
     return this.restService.request<null, null>({
       method: 'DELETE',
-      url: `/api/app/contract-document/${versionId}`,
+      url: `/api/app/contract-document/version/${versionId}`,
     }, {
       apiName: this.apiName,
     }).pipe(
