@@ -65,6 +65,27 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
         _documentExtractionProvider = documentExtractionProvider;
     }
 
+    [Authorize(LegalTechPermissions.Contracts.Default)]
+    public async Task<ContractDocumentVersionDto> GetAsync(Guid id)
+    {
+        var version = await _documentVersionRepository.GetAsync(id);
+        var dto = Mappers.MapToContractDocumentVersionDto(version);
+        
+        var extraction = await _documentExtractionRepository.FirstOrDefaultAsync(e => e.ContractDocumentVersionId == id);
+        if (extraction != null)
+        {
+            dto.ExtractionStatus = extraction.Status;
+            dto.ExtractedTitle = extraction.ExtractedTitle;
+            dto.ExtractedCounterparty = extraction.ExtractedCounterparty;
+            dto.ExtractedEffectiveDate = extraction.ExtractedEffectiveDate;
+            dto.ExtractedExpirationDate = extraction.ExtractedExpirationDate;
+            dto.ExtractedCategory = extraction.ExtractedCategory;
+            dto.ExtractedRiskBaseline = extraction.ExtractedRiskBaseline;
+        }
+        
+        return dto;
+    }
+
     [Authorize(LegalTechPermissions.Contracts.AttachDocument)]
     public async Task<ContractDocumentVersionDto> UploadAsync(Guid contractId, ContractAttachDocumentDto input)
     {
@@ -117,7 +138,7 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
             await _documentVersionRepository.UpdateAsync(v);
         }
 
-        var newVersion = new             ContractDocumentVersion(
+        var newVersion = new ContractDocumentVersion(
             Guid.NewGuid(),
             _currentTenant.Id,
             contractId,
@@ -181,7 +202,28 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
 
         var versions = await _documentVersionRepository.GetListAsync(v => v.ContractId == contractId);
         var sorted = versions.OrderByDescending(v => v.VersionNumber).ToList();
-        return new ListResultDto<ContractDocumentVersionDto>(sorted.Select(Mappers.MapToContractDocumentVersionDto).ToList());
+        
+        var dtos = new List<ContractDocumentVersionDto>();
+        foreach (var version in sorted)
+        {
+            var dto = Mappers.MapToContractDocumentVersionDto(version);
+            
+            var extraction = await _documentExtractionRepository.FirstOrDefaultAsync(e => e.ContractDocumentVersionId == version.Id);
+            if (extraction != null)
+            {
+                dto.ExtractionStatus = extraction.Status;
+                dto.ExtractedTitle = extraction.ExtractedTitle;
+                dto.ExtractedCounterparty = extraction.ExtractedCounterparty;
+                dto.ExtractedEffectiveDate = extraction.ExtractedEffectiveDate;
+                dto.ExtractedExpirationDate = extraction.ExtractedExpirationDate;
+                dto.ExtractedCategory = extraction.ExtractedCategory;
+                dto.ExtractedRiskBaseline = extraction.ExtractedRiskBaseline;
+            }
+            
+            dtos.Add(dto);
+        }
+        
+        return new ListResultDto<ContractDocumentVersionDto>(dtos);
     }
 
     [Authorize(LegalTechPermissions.Contracts.Default)]

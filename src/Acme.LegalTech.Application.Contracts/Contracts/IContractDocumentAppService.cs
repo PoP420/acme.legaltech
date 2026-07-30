@@ -10,6 +10,7 @@ namespace Acme.LegalTech.Contracts;
 
 public interface IContractDocumentAppService : IApplicationService
 {
+    Task<ContractDocumentVersionDto> GetAsync(Guid id);
     Task<ContractDocumentVersionDto> UploadAsync(Guid contractId, ContractAttachDocumentDto input);
     Task<ListResultDto<ContractDocumentVersionDto>> GetVersionsAsync(Guid contractId);
     Task<IRemoteStreamContent> DownloadAsync(Guid versionId);
