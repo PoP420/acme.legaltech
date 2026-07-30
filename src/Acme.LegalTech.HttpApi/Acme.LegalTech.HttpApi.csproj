@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Acme.LegalTech.Application.Contracts\Acme.LegalTech.Application.Contracts.csproj" />
+    <ProjectReference Include="..\Acme.LegalTech.Application\Acme.LegalTech.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
