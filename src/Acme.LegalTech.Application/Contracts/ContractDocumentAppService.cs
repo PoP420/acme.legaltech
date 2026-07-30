@@ -142,34 +142,57 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
         var fileSize = stream.Length;
         
         Logger.LogInformation("Saving blob to container: {BlobName}, FileSize: {FileSize}", blobName, fileSize);
-        await _blobContainer.SaveAsync(blobName, stream);
+        try
+        {
+            await _blobContainer.SaveAsync(blobName, stream);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to save blob for document version {BlobName}", blobName);
+            throw new BusinessException("LegalTech:Contract:UploadFailed")
+            {
+                Data = { ["FileName"] = input.File.FileName }
+            };
+        }
         
         Logger.LogInformation("Blob saved successfully: {BlobName}", blobName);
 
-        var versions = await _documentVersionRepository.GetListAsync(v => v.ContractId == contractId);
-        var nextVersion = versions.Any() ? versions.Max(v => v.VersionNumber) + 1 : 1;
-
-        foreach (var v in versions.Where(v => v.IsLatest))
+        ContractDocumentVersion newVersion;
+        try
         {
-            v.UnmarkLatest();
-            await _documentVersionRepository.UpdateAsync(v);
+            var versions = await _documentVersionRepository.GetListAsync(v => v.ContractId == contractId);
+            var nextVersion = versions.Any() ? versions.Max(v => v.VersionNumber) + 1 : 1;
+
+            foreach (var v in versions.Where(v => v.IsLatest))
+            {
+                v.UnmarkLatest();
+                await _documentVersionRepository.UpdateAsync(v);
+            }
+
+            newVersion = new ContractDocumentVersion(
+                Guid.NewGuid(),
+                _currentTenant.Id,
+                contractId,
+                nextVersion,
+                blobName,
+                input.File.FileName ?? string.Empty,
+                contentType,
+                fileSize,
+                CurrentUser.Id,
+                input.ChangeNote);
+
+            await _documentVersionRepository.InsertAsync(newVersion);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to save document version for contract {ContractId}", contractId);
+            throw new BusinessException("LegalTech:Contract:UploadFailed")
+            {
+                Data = { ["ContractId"] = contractId.ToString() }
+            };
         }
 
-        var newVersion = new ContractDocumentVersion(
-            Guid.NewGuid(),
-            _currentTenant.Id,
-            contractId,
-            nextVersion,
-            blobName,
-            input.File.FileName ?? string.Empty,
-            contentType,
-            fileSize,
-            CurrentUser.Id,
-            input.ChangeNote);
-
-        var saved = await _documentVersionRepository.InsertAsync(newVersion);
-
-        var savedDto = Mappers.MapToContractDocumentVersionDto(saved);
+        var savedDto = Mappers.MapToContractDocumentVersionDto(newVersion);
 
         try
         {
@@ -181,7 +204,7 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
             var extraction = new DocumentExtraction(
                 Guid.NewGuid(),
                 _currentTenant.Id,
-                saved.Id,
+                newVersion.Id,
                 extractionResult.ProviderName ?? "Unknown",
                 extractionResult);
 
@@ -204,7 +227,7 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to run document extraction for document version {VersionId}", saved.Id);
+            Logger.LogError(ex, "Failed to run document extraction for document version {VersionId}", newVersion.Id);
             savedDto.ExtractionStatus = "Error";
         }
 
@@ -223,44 +246,38 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
             };
         }
 
-<<<<<<< ours
-        var versions = await _documentVersionRepository.GetListAsync(v => v.ContractId == contractId);
-        var sorted = versions.OrderByDescending(v => v.VersionNumber).ToList();
-        
-        var dtos = new List<ContractDocumentVersionDto>();
-        foreach (var version in sorted)
-        {
-            var dto = Mappers.MapToContractDocumentVersionDto(version);
-            
-            var extraction = await _documentExtractionRepository.FirstOrDefaultAsync(e => e.ContractDocumentVersionId == version.Id);
-            if (extraction != null)
-            {
-                dto.ExtractionStatus = extraction.Status;
-                dto.ExtractedTitle = extraction.ExtractedTitle;
-                dto.ExtractedCounterparty = extraction.ExtractedCounterparty;
-                dto.ExtractedEffectiveDate = extraction.ExtractedEffectiveDate;
-                dto.ExtractedExpirationDate = extraction.ExtractedExpirationDate;
-                dto.ExtractedCategory = extraction.ExtractedCategory;
-                dto.ExtractedRiskBaseline = extraction.ExtractedRiskBaseline;
-            }
-            
-            dtos.Add(dto);
-        }
-        
-        return new ListResultDto<ContractDocumentVersionDto>(dtos);
-=======
         try
         {
             var versions = await _documentVersionRepository.GetListAsync(v => v.ContractId == contractId);
             var sorted = versions.OrderByDescending(v => v.VersionNumber).ToList();
-            return new ListResultDto<ContractDocumentVersionDto>(sorted.Select(Mappers.MapToContractDocumentVersionDto).ToList());
+            
+            var dtos = new List<ContractDocumentVersionDto>();
+            foreach (var version in sorted)
+            {
+                var dto = Mappers.MapToContractDocumentVersionDto(version);
+                
+                var extraction = await _documentExtractionRepository.FirstOrDefaultAsync(e => e.ContractDocumentVersionId == version.Id);
+                if (extraction != null)
+                {
+                    dto.ExtractionStatus = extraction.Status;
+                    dto.ExtractedTitle = extraction.ExtractedTitle;
+                    dto.ExtractedCounterparty = extraction.ExtractedCounterparty;
+                    dto.ExtractedEffectiveDate = extraction.ExtractedEffectiveDate;
+                    dto.ExtractedExpirationDate = extraction.ExtractedExpirationDate;
+                    dto.ExtractedCategory = extraction.ExtractedCategory;
+                    dto.ExtractedRiskBaseline = extraction.ExtractedRiskBaseline;
+                }
+                
+                dtos.Add(dto);
+            }
+            
+            return new ListResultDto<ContractDocumentVersionDto>(dtos);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to get document versions for contract {ContractId}", contractId);
             return new ListResultDto<ContractDocumentVersionDto>(new List<ContractDocumentVersionDto>());
         }
->>>>>>> theirs
     }
 
     [Authorize(LegalTechPermissions.Contracts.Default)]
@@ -275,8 +292,19 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
             };
         }
 
-        var stream = await _blobContainer.GetAsync(version.BlobName);
-        return new RemoteStreamContent(stream, version.FileName, version.ContentType);
+        try
+        {
+            var stream = await _blobContainer.GetAsync(version.BlobName);
+            return new RemoteStreamContent(stream, version.FileName, version.ContentType);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to download document version {VersionId}", versionId);
+            throw new BusinessException("LegalTech:Contract:DownloadFailed")
+            {
+                Data = { ["VersionId"] = versionId.ToString() }
+            };
+        }
     }
 
     [Authorize(LegalTechPermissions.Contracts.AttachDocument)]
@@ -291,7 +319,18 @@ public class ContractDocumentAppService : ApplicationService, IContractDocumentA
             };
         }
 
-        await _documentVersionRepository.DeleteAsync(version);
-        await _blobContainer.DeleteAsync(version.BlobName);
+        try
+        {
+            await _documentVersionRepository.DeleteAsync(version);
+            await _blobContainer.DeleteAsync(version.BlobName);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to delete document version {VersionId}", versionId);
+            throw new BusinessException("LegalTech:Contract:DeleteFailed")
+            {
+                Data = { ["VersionId"] = versionId.ToString() }
+            };
+        }
     }
 }
