@@ -136,9 +136,9 @@ export class ContractService {
 
   upload(contractId: string, file: File, changeNote?: string) {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('File', file);
     if (changeNote) {
-      formData.append('changeNote', changeNote);
+      formData.append('ChangeNote', changeNote);
     }
 
     return this.restService.request<FormData, ContractDocumentVersionDto>({
