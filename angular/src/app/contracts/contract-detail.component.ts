@@ -5,7 +5,7 @@ import { switchMap, EMPTY } from 'rxjs';
 import { PermissionDirective } from '@abp/ng.core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatusLabels } from '../services/contract.service';
+import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatusLabels, ContractStatus } from '../services/contract.service';
 
 @Component({
   selector: 'app-contract-detail',
