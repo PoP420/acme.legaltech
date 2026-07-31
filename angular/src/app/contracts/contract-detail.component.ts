@@ -92,6 +92,11 @@ import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatu
                           *abpPermission="'LegalTech.Contracts.Default'">
                     Download
                   </button>
+                  <button class="btn btn-sm btn-outline-info me-1"
+                          (click)="viewFile(version)"
+                          *abpPermission="'LegalTech.Contracts.Default'">
+                    View
+                  </button>
                   <button class="btn btn-sm btn-outline-danger"
                           (click)="onDelete(version.id)"
                           *abpPermission="'LegalTech.Contracts.AttachDocument'">
@@ -108,6 +113,33 @@ import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatu
         </div>
       </div>
     </div>
+
+    <div class="modal-backdrop fade show" *ngIf="previewVisible" (click)="closePreview()"></div>
+    <div class="modal fade show d-block" tabindex="-1" *ngIf="previewVisible" role="dialog" aria-modal="true" aria-labelledby="previewModalTitle">
+      <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="previewModalTitle">{{ previewVersion?.fileName }}</h5>
+            <button type="button" class="btn-close" (click)="closePreview()" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-0" style="height: 75vh;">
+            <div *ngIf="previewVersion && isImage(previewVersion)" class="w-100 h-100 d-flex align-items-center justify-content-center" style="background: #f0f0f0;">
+              <img [src]="getPreviewUrl(previewVersion)" class="img-fluid" (load)="previewLoaded = true" (error)="previewLoaded = false" [alt]="previewVersion.fileName" />
+              <div *ngIf="!previewLoaded" class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+            <div *ngIf="previewVersion && !isImage(previewVersion) && !isPdf(previewVersion)" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center">
+              <p class="text-muted mb-3">Preview not available for this file type.</p>
+              <a class="btn btn-primary" [href]="getPreviewUrl(previewVersion)" target="_blank" rel="noopener noreferrer">
+                Download to View
+              </a>
+            </div>
+            <iframe *ngIf="previewVersion && isPdf(previewVersion)" [src]="getPreviewUrl(previewVersion)" class="w-100 h-100 border-0" title="PDF Preview"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
   `,
   imports: [CommonModule, RouterLink, PermissionDirective, FormsModule],
 })
@@ -119,6 +151,9 @@ export class ContractDetailComponent {
   uploading = false;
   versionsError = false;
   versionsErrorMessage = '';
+  previewVisible = false;
+  previewVersion: ContractDocumentVersionDto | null = null;
+  previewLoaded = true;
 
   get statusLabel(): string {
     return this.contract ? ContractStatusLabels[this.contract.status as ContractStatus] || String(this.contract.status) : '-';
@@ -191,7 +226,30 @@ export class ContractDetailComponent {
     });
   }
 
-  extractionLabel(status: string | null | undefined): string {
+  viewFile(version: ContractDocumentVersionDto) {
+    this.previewVersion = version;
+    this.previewVisible = true;
+    this.previewLoaded = true;
+  }
+
+  closePreview() {
+    this.previewVisible = false;
+    this.previewVersion = null;
+  }
+
+  getPreviewUrl(version: ContractDocumentVersionDto): string {
+    return this.contractService.getDocumentDownloadUrl(version.id);
+  }
+
+  isImage(version: ContractDocumentVersionDto): boolean {
+    return version.contentType?.startsWith('image/') ?? false;
+  }
+
+  isPdf(version: ContractDocumentVersionDto): boolean {
+    return version.contentType === 'application/pdf';
+  }
+
+   extractionLabel(status: string | null | undefined): string {
     if (!status) return 'Pending';
     return status;
   }
