@@ -28,6 +28,8 @@ export const CONTRACTS_ROUTES: Routes = [
       },
       {
         path: ':id',
+        canActivate: [permissionGuard],
+        data: { requiredPolicy: 'LegalTech.Contracts.Default' },
         loadComponent: () => import('./contract-detail.component').then(c => c.ContractDetailComponent),
       },
     ],
