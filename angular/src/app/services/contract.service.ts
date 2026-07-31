@@ -173,4 +173,8 @@ export class ContractService {
     const url = `${this.apiBaseUrl}/api/app/contract-document/download/${versionId}`;
     window.open(url, '_blank');
   }
+
+  getDocumentDownloadUrl(versionId: string): string {
+    return `${this.apiBaseUrl}/api/app/contract-document/download/${versionId}`;
+  }
 }
