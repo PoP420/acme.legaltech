@@ -95,12 +95,12 @@ import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatu
                 <td class="text-end">
                   <button class="btn btn-sm btn-outline-primary me-1"
                           (click)="onDownload(version.id)"
-                          *abpPermission="'LegalTech.Contracts.Default'">
+                          *abpPermission="'LegalTech.Contracts'">
                     Download
                   </button>
                   <button class="btn btn-sm btn-outline-info me-1"
                           (click)="viewFile(version)"
-                          *abpPermission="'LegalTech.Contracts.Default'">
+                          *abpPermission="'LegalTech.Contracts'">
                     View
                   </button>
                   <button class="btn btn-sm btn-outline-danger"
