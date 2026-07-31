@@ -5,6 +5,7 @@ import { switchMap, EMPTY } from 'rxjs';
 import { PermissionDirective } from '@abp/ng.core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatusLabels, ContractStatus } from '../services/contract.service';
 
 @Component({
@@ -94,12 +95,12 @@ import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatu
                 <td class="text-end">
                   <button class="btn btn-sm btn-outline-primary me-1"
                           (click)="onDownload(version.id)"
-                          *abpPermission="'LegalTech.Contracts.Default'">
+                          *abpPermission="'LegalTech.Contracts'">
                     Download
                   </button>
                   <button class="btn btn-sm btn-outline-info me-1"
                           (click)="viewFile(version)"
-                          *abpPermission="'LegalTech.Contracts.Default'">
+                          *abpPermission="'LegalTech.Contracts'">
                     View
                   </button>
                   <button class="btn btn-sm btn-outline-danger"
@@ -129,18 +130,16 @@ import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatu
           </div>
           <div class="modal-body p-0" style="height: 75vh;">
             <div *ngIf="previewVersion && isImage(previewVersion)" class="w-100 h-100 d-flex align-items-center justify-content-center" style="background: #f0f0f0;">
-              <img [src]="getPreviewUrl(previewVersion)" class="img-fluid" (load)="previewLoaded = true" (error)="previewLoaded = false" [alt]="previewVersion.fileName" />
-              <div *ngIf="!previewLoaded" class="spinner-border text-primary" role="status">
+              <img *ngIf="previewBlobUrl" [src]="previewBlobUrl" class="img-fluid" (load)="previewLoaded = true" (error)="previewLoaded = false" [alt]="previewVersion.fileName" />
+              <div *ngIf="!previewBlobUrl" class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
               </div>
             </div>
             <div *ngIf="previewVersion && !isImage(previewVersion) && !isPdf(previewVersion)" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center">
               <p class="text-muted mb-3">Preview not available for this file type.</p>
-              <a class="btn btn-primary" [href]="getPreviewUrl(previewVersion)" target="_blank" rel="noopener noreferrer">
-                Download to View
-              </a>
+              <button class="btn btn-primary" (click)="onDownload(previewVersion.id)">Download to View</button>
             </div>
-            <iframe *ngIf="previewVersion && isPdf(previewVersion)" [src]="getPreviewUrl(previewVersion)" class="w-100 h-100 border-0" title="PDF Preview"></iframe>
+            <iframe *ngIf="previewVersion && isPdf(previewVersion)" [src]="previewBlobUrl || ''" class="w-100 h-100 border-0" title="PDF Preview"></iframe>
           </div>
         </div>
       </div>
@@ -154,11 +153,15 @@ export class ContractDetailComponent {
   selectedFile: File | null = null;
   changeNote = '';
   uploading = false;
+  uploadError = false;
+  uploadErrorMessage = '';
   versionsError = false;
   versionsErrorMessage = '';
   previewVisible = false;
   previewVersion: ContractDocumentVersionDto | null = null;
   previewLoaded = true;
+  previewBlobUrl: SafeResourceUrl | null = null;
+  private currentPreviewObjectUrl: string | null = null;
 
   get statusLabel(): string {
     return this.contract ? ContractStatusLabels[this.contract.status as ContractStatus] || String(this.contract.status) : '-';
@@ -167,6 +170,7 @@ export class ContractDetailComponent {
   constructor(
     private route: ActivatedRoute,
     private contractService: ContractService,
+    private sanitizer: DomSanitizer,
   ) {
     this.route.paramMap.pipe(
       switchMap((params: ParamMap) => {
@@ -236,18 +240,46 @@ export class ContractDetailComponent {
   }
 
   viewFile(version: ContractDocumentVersionDto) {
+    if (this.currentPreviewObjectUrl) {
+      URL.revokeObjectURL(this.currentPreviewObjectUrl);
+      this.currentPreviewObjectUrl = null;
+    }
+
     this.previewVersion = version;
     this.previewVisible = true;
     this.previewLoaded = true;
+    this.previewBlobUrl = null;
+
+    if (this.isImage(version) || this.isPdf(version)) {
+      this.contractService.getBlob(version.id).subscribe({
+        next: blob => {
+          const objectUrl = URL.createObjectURL(blob);
+          this.currentPreviewObjectUrl = objectUrl;
+          this.previewBlobUrl = this.sanitizer.bypassSecurityTrustResourceUrl(objectUrl);
+        },
+        error: () => {
+          this.previewBlobUrl = null;
+        },
+      });
+    }
   }
 
   closePreview() {
     this.previewVisible = false;
     this.previewVersion = null;
+    this.previewBlobUrl = null;
+    if (this.currentPreviewObjectUrl) {
+      URL.revokeObjectURL(this.currentPreviewObjectUrl);
+      this.currentPreviewObjectUrl = null;
+    }
   }
 
   getPreviewUrl(version: ContractDocumentVersionDto): string {
     return this.contractService.getDocumentDownloadUrl(version.id);
+  }
+
+  getPreviewSafeUrl(version: ContractDocumentVersionDto): SafeResourceUrl {
+    return this.sanitizer.bypassSecurityTrustResourceUrl(this.getPreviewUrl(version));
   }
 
   isImage(version: ContractDocumentVersionDto): boolean {
