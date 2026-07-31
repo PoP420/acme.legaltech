@@ -1,0 +1,127 @@
+{
+  "id": "/subscriptions/be4a9ac8-3884-4372-adef-14ddffde4368/resourceGroups/legaltech-rg/providers/Microsoft.Resources/deployments/FormRecognizerCreate-20260731104609",
+  "name": "FormRecognizerCreate-20260731104609",
+  "type": "Microsoft.Resources/deployments",
+  "properties": {
+    "templateHash": "3949272071454756644",
+    "parameters": {
+      "name": {
+        "type": "String",
+        "value": "di-legaltech-001"
+      },
+      "location": {
+        "type": "String",
+        "value": "eastasia"
+      },
+      "resourceGroupName": {
+        "type": "String",
+        "value": "legaltech-rg"
+      },
+      "resourceGroupId": {
+        "type": "String",
+        "value": "/subscriptions/be4a9ac8-3884-4372-adef-14ddffde4368/resourceGroups/legaltech-rg"
+      },
+      "sku": {
+        "type": "String",
+        "value": "F0"
+      },
+      "tagValues": {
+        "type": "Object",
+        "value": {}
+      },
+      "virtualNetworkType": {
+        "type": "String",
+        "value": "None"
+      },
+      "vnet": {
+        "type": "Object",
+        "value": {}
+      },
+      "ipRules": {
+        "type": "Array",
+        "value": []
+      },
+      "identity": {
+        "type": "Object",
+        "value": {
+          "type": "None"
+        }
+      },
+      "privateEndpoints": {
+        "type": "Array",
+        "value": []
+      },
+      "privateDnsZone": {
+        "type": "String",
+        "value": "privatelink.cognitiveservices.azure.com"
+      },
+      "isCommitmentPlanForDisconnectedContainerEnabled": {
+        "type": "Bool",
+        "value": false
+      },
+      "commitmentPlanForDisconnectedContainer": {
+        "type": "Object",
+        "value": {
+          "current": {},
+          "hostingModel": "DisconnectedContainer",
+          "planType": "CustomInvoice",
+          "autoRenew": true
+        }
+      },
+      "isCommitmentPlanForReadDisconnectedContainerEnabled": {
+        "type": "Bool",
+        "value": false
+      },
+      "commitmentPlanForReadDisconnectedContainer": {
+        "type": "Object",
+        "value": {
+          "current": {},
+          "hostingModel": "DisconnectedContainer",
+          "planType": "Read",
+          "autoRenew": true
+        }
+      },
+      "isCommitmentPlanForPrebuiltDisconnectedContainerEnabled": {
+        "type": "Bool",
+        "value": false
+      },
+      "commitmentPlanForPrebuiltDisconnectedContainer": {
+        "type": "Object",
+        "value": {
+          "current": {},
+          "hostingModel": "DisconnectedContainer",
+          "planType": "PreBuilt",
+          "autoRenew": true
+        }
+      },
+      "uniqueId": {
+        "type": "String",
+        "value": "05479ba0-1bec-4acf-8276-a8a410b643a1"
+      }
+    },
+    "mode": "Incremental",
+    "debugSetting": {
+      "detailLevel": "None"
+    },
+    "provisioningState": "Running",
+    "timestamp": "2026-07-31T02:46:51.4972593Z",
+    "duration": "PT3.283325S",
+    "correlationId": "7eb82d0c-7037-47d3-91ff-42cb9f2dad29",
+    "providers": [
+      {
+        "namespace": "Microsoft.CognitiveServices",
+        "resourceTypes": [
+          {
+            "resourceType": "accounts",
+            "locations": [
+              "eastasia"
+            ]
+          }
+        ]
+      }
+    ],
+    "dependencies": [],
+    "validationLevel": "Template"
+  },
+  "tags": {}
+}

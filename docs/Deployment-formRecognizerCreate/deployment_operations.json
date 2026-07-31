@@ -1,0 +1,19 @@
+[
+  {
+    "id": "/subscriptions/be4a9ac8-3884-4372-adef-14ddffde4368/resourceGroups/legaltech-rg/providers/Microsoft.Resources/deployments/FormRecognizerCreate-20260731104609/operations/625BC152F97598E2",
+    "operationId": "625BC152F97598E2",
+    "properties": {
+      "provisioningOperation": "Create",
+      "provisioningState": "Running",
+      "timestamp": "2026-07-31T02:46:51.9087284Z",
+      "duration": "PT2.9751049S",
+      "trackingId": "0c57ef90-b34a-4370-84e2-15ba7f46da7f",
+      "statusCode": "Created",
+      "targetResource": {
+        "id": "/subscriptions/be4a9ac8-3884-4372-adef-14ddffde4368/resourceGroups/legaltech-rg/providers/Microsoft.CognitiveServices/accounts/di-legaltech-001",
+        "resourceType": "Microsoft.CognitiveServices/accounts",
+        "resourceName": "di-legaltech-001"
+      }
+    }
+  }
+]
