@@ -13,6 +13,12 @@ public class ContractUpdateDto
     public Guid? OwnerUserId { get; set; }
     public string? Category { get; set; }
     public string? RiskBaseline { get; set; }
+    public string? DocumentNumber { get; set; }
+    public string? DocumentSeries { get; set; }
+    public int? DocumentYear { get; set; }
+    public DocumentClassification? Classification { get; set; }
+    public DateTime? RetentionUntil { get; set; }
+    public decimal? ContractValue { get; set; }
     public List<ContractTagDto> Tags { get; set; } = new();
     public List<CounterpartyReferenceDto> Counterparties { get; set; } = new();
 }
