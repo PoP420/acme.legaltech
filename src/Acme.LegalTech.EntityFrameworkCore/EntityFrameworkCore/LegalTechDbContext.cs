@@ -1,4 +1,6 @@
+using System;
 using Acme.LegalTech.Clauses;
+using Acme.LegalTech.Common;
 using Acme.LegalTech.Contracts;
 using Acme.LegalTech.Obligations;
 using Acme.LegalTech.Playbooks;
@@ -51,6 +53,10 @@ public class LegalTechDbContext :
     public DbSet<RenewalSchedule> RenewalSchedules { get; set; }
     public DbSet<ObligationReminder> ObligationReminders { get; set; }
     public DbSet<CompletionEvidence> CompletionEvidence { get; set; }
+    
+    // New DbSets for government contract compliance
+    public DbSet<VariationOrder> VariationOrders { get; set; }
+    public DbSet<GovernmentApprovalTier> GovernmentApprovalTiers { get; set; }
 
 
     #region Entities from the modules
@@ -114,6 +120,38 @@ public class LegalTechDbContext :
             b.HasIndex(c => c.Status);
             b.HasIndex(c => c.Category);
             b.HasIndex(c => c.OwnerUserId);
+
+            // Configure owned collection for ContractSignatories
+            b.OwnsMany(c => c.Signatories, sb =>
+            {
+                sb.ToTable(LegalTechConsts.DbTablePrefix + "ContractSignatories", LegalTechConsts.DbSchema);
+                sb.WithOwner().HasForeignKey("ContractId");
+                sb.HasKey("Id");
+                
+                sb.Property<int>("Id")
+                    .ValueGeneratedOnAdd();
+                
+                sb.Property<Guid>("ContractId")
+                    .IsRequired();
+                    
+                // Configure enum properties using proper EF Core enum mapping
+                sb.Property<GovernmentSignatoryRole>("Role")
+                    .IsRequired();
+                    
+                sb.Property<DocumentPartyType>("PartyType")
+                    .IsRequired();
+                    
+                sb.Property<DocumentClassification>("Classification");
+                
+                // Unique index for AuthorizedSignatory only (R2)
+                sb.HasIndex("ContractId", "Role")
+                    .HasFilter("\"Role\" = 4") // AuthorizedSignatory = 4
+                    .IsUnique();
+            });
+            
+            // Navigation property for Signatories (will be loaded via owned collection)
+            b.Metadata.FindNavigation(nameof(Contract.Signatories))!
+                .SetPropertyAccessMode(PropertyAccessMode.Field);
         });
 
         builder.Entity<ContractDocumentVersion>(b =>
@@ -202,7 +240,7 @@ public class LegalTechDbContext :
 
         builder.Entity<ReviewTask>(b =>
         {
-            b.ToTable(LegalTechConsts.DbTablePrefix + "ReviewTasks", LegalTechConsts.DbSchema);
+            b.ToTable(LegalTechConsts.DbTablePrefix + "ReviewTasks", LegalTechConsts.DbSchema); // FIXED: Removed extra text
             b.ConfigureByConvention();
 
             b.HasIndex(t => t.ReviewCaseId);
@@ -278,6 +316,28 @@ public class LegalTechDbContext :
 
             b.HasIndex(e => e.ObligationId);
             b.HasIndex(e => e.TenantId);
+        });
+
+        // Configure VariationOrder entity
+        builder.Entity<VariationOrder>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "VariationOrders", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(v => v.ContractId);
+            b.HasIndex(v => v.OrderId);
+        });
+
+        // Configure GovernmentApprovalTier entity
+        builder.Entity<GovernmentApprovalTier>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "GovernmentApprovalTiers", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(t => t.TenantId);
+            // Unique index for tier ranges per tenant (optional, could overlap for different ranges)
+            b.HasIndex(t => new { t.TenantId, t.AmountFrom, t.AmountTo })
+                .IsUnique();
         });
     }
 }

@@ -45,6 +45,14 @@ public class LegalTechPermissionDefinitionProvider : PermissionDefinitionProvide
         keys.Add(changeStatus.Name);
         var attachDocument = group.AddPermission(LegalTechPermissions.Contracts.AttachDocument, L("Permission:Contracts.AttachDocument"));
         keys.Add(attachDocument.Name);
+        var manageSignatories = group.AddPermission(LegalTechPermissions.Contracts.ManageSignatories, L("Permission:Contracts.ManageSignatories"));
+        keys.Add(manageSignatories.Name);
+        var amend = group.AddPermission(LegalTechPermissions.Contracts.Amend, L("Permission:Contracts.Amend"));
+        keys.Add(amend.Name);
+        var terminate = group.AddPermission(LegalTechPermissions.Contracts.Terminate, L("Permission:Contracts.Terminate"));
+        keys.Add(terminate.Name);
+        var viewGovFields = group.AddPermission(LegalTechPermissions.Contracts.ViewGovFields, L("Permission:Contracts.ViewGovFields"));
+        keys.Add(viewGovFields.Name);
     }
 
     private void RegisterClausesPermissions(IPermissionDefinitionContext context, List<string> keys)
