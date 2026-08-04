@@ -38,14 +38,14 @@ public class ContractDocumentController : LegalTechController
     }
 
     [HttpGet("{id:guid}")]
-    [Authorize(LegalTechPermissions.Contracts.Default)]
+    [Authorize(LegalTechPermissions.Contracts.AttachDocument)]
     public async Task<ContractDocumentVersionDto> GetAsync(Guid id)
     {
         return await _appService.GetAsync(id);
     }
 
     [HttpGet("versions/download/{versionId:guid}")]
-    [Authorize(LegalTechPermissions.Contracts.Default)]
+    [Authorize(LegalTechPermissions.Contracts.AttachDocument)]
     public async Task<IRemoteStreamContent> DownloadAsync(Guid versionId)
     {
         return await _appService.DownloadAsync(versionId);

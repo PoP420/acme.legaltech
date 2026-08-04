@@ -77,6 +77,4 @@
     "Contract:GovSignatoryExists": "An AuthorizedSignatory already exists for this contract.",
     "Contract:ApprovalTierNotFound": "No matching approval tier was found for the specified amount."
   }
-
-
 }

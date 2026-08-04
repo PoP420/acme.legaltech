@@ -8,6 +8,9 @@ using Volo.Abp.MultiTenancy;
 
 namespace Acme.LegalTech.Contracts;
 
+/// <summary>
+/// Represents a contract in the legal tech system.
+/// </summary>
 public class Contract : FullAuditedAggregateRoot<Guid>, IMultiTenant
 {
     public string Title { get; protected set; }

@@ -158,7 +158,7 @@ export class ContractService {
   deleteVersion(versionId: string) {
     return this.restService.request<null, null>({
       method: 'DELETE',
-      url: `/api/app/contract-document/version/${versionId}`,
+      url: `/api/app/contract-document/versions/${versionId}`,
     }, {
       apiName: this.apiName,
     }).pipe(
@@ -170,11 +170,26 @@ export class ContractService {
   }
 
   download(versionId: string): void {
-    const url = `${this.apiBaseUrl}/api/app/contract-document/download/${versionId}`;
+    const url = `${this.apiBaseUrl}/api/app/contract-document/versions/download/${versionId}`;
     window.open(url, '_blank');
   }
 
   getDocumentDownloadUrl(versionId: string): string {
-    return `${this.apiBaseUrl}/api/app/contract-document/download/${versionId}`;
+    return `${this.apiBaseUrl}/api/app/contract-document/versions/download/${versionId}`;
+  }
+
+  getBlob(versionId: string) {
+    return this.restService.request<null, Blob>({
+      method: 'GET',
+      url: `/api/app/contract-document/versions/download/${versionId}`,
+      responseType: 'blob' as 'json',
+    }, {
+      apiName: this.apiName,
+    }).pipe(
+      catchError(error => {
+        console.error('Failed to fetch document blob', error);
+        return throwError(() => error);
+      }),
+    );
   }
 }
