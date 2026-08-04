@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using Acme.LegalTech.Common;
 using Acme.LegalTech.Contracts;
 
 namespace Acme.LegalTech;
@@ -16,7 +19,18 @@ public class LegalTechApplicationMappers
         ExpirationDate = source.ExpirationDate,
         OwnerUserId = source.OwnerUserId,
         RiskBaseline = source.RiskBaseline,
-        DocumentBlobName = source.DocumentBlobName
+        DocumentBlobName = source.DocumentBlobName,
+        DocumentNumber = source.DocumentNumber,
+        DocumentSeries = source.DocumentSeries,
+        DocumentYear = source.DocumentYear,
+        Classification = source.Classification,
+        RetentionUntil = source.RetentionUntil,
+        ContractValue = source.ContractValue,
+        Tags = new List<ContractTagDto>(),
+        Counterparties = new List<CounterpartyReferenceDto>(),
+        DocumentVersions = new List<ContractDocumentVersionDto>(),
+        Signatories = source.Signatories.Select(s => MapToContractSignatoryDto(s)).ToList(),
+        VariationOrders = source.VariationOrders.Select(v => MapToVariationOrderDto(v)).ToList()
     };
 
     public ContractTagDto MapToContractTagDto(ContractTag source) => new()
@@ -47,6 +61,41 @@ public class LegalTechApplicationMappers
         UploadedById = source.UploadedById,
         ChangeNote = source.ChangeNote,
         UploadedAt = source.UploadedAt
+    };
+
+    public ContractSignatoryDto MapToContractSignatoryDto(ContractSignatory source) => new()
+    {
+        Id = source.Id,
+        ContractId = source.ContractId,
+        Role = source.Role,
+        PartyType = source.PartyType,
+        PartyId = source.PartyId,
+        GovernmentAgency = source.GovernmentAgency,
+        Capacity = source.Capacity,
+        Order = source.Order,
+        SignedOn = source.SignedOn
+    };
+
+    public VariationOrderDto MapToVariationOrderDto(VariationOrder source) => new()
+    {
+        Id = source.Id,
+        ContractId = source.ContractId,
+        Description = source.Description,
+        Amount = source.Amount,
+        CumulativeAmount = source.CumulativeAmount,
+        ApprovedBy = source.ApprovedBy,
+        ApprovedOn = source.ApprovedOn
+    };
+
+    public GovernmentApprovalTierDto MapToGovernmentApprovalTierDto(GovernmentApprovalTier source) => new()
+    {
+        Id = source.Id,
+        AmountFrom = source.AmountFrom,
+        AmountTo = source.AmountTo,
+        AuthorityTitle = source.AuthorityTitle,
+        RequiresNedaReview = source.RequiresNedaReview,
+        RequiresPresident = source.RequiresPresident,
+        AllowableVariationPercent = source.AllowableVariationPercent
     };
 
     public DocumentExtractionDto MapToDocumentExtractionDto(DocumentExtraction source) => new()

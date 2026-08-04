@@ -35,6 +35,10 @@ public static class LegalTechPermissions
         public const string Edit = Default + ".Edit";
         public const string ChangeStatus = Default + ".ChangeStatus";
         public const string AttachDocument = Default + ".AttachDocument";
+        public const string ManageSignatories = Default + ".ManageSignatories";
+        public const string Amend = Default + ".Amend";
+        public const string Terminate = Default + ".Terminate";
+        public const string ViewGovFields = Default + ".ViewGovFields";
 
         public static readonly IReadOnlyList<string> All =
         [
@@ -42,7 +46,11 @@ public static class LegalTechPermissions
             Create,
             Edit,
             ChangeStatus,
-            AttachDocument
+            AttachDocument,
+            ManageSignatories,
+            Amend,
+            Terminate,
+            ViewGovFields
         ];
     }
 

@@ -34,6 +34,7 @@ public class LegalTechRoleDataSeedContributor : IDataSeedContributor, ITransient
         }
 
         await GrantContractsPermissionsAsync();
+        await GrantGovPermissionsAsync();
         await GrantClausesPermissionsAsync();
         await GrantPlaybooksPermissionsAsync();
         await GrantReviewsPermissionsAsync();
@@ -96,6 +97,21 @@ public class LegalTechRoleDataSeedContributor : IDataSeedContributor, ITransient
         var roleNames = new[] { LegalTechRoles.LegalOpsManager, LegalTechRoles.LawyerReviewer, LegalTechRoles.TenantAdmin, "admin", LegalTechRoles.HostAdmin };
 
         await GrantPermissionsAsync(contractsPerms, roleNames);
+    }
+
+    private async Task GrantGovPermissionsAsync()
+    {
+        var govPerms = new[]
+        {
+            LegalTechPermissions.Contracts.ManageSignatories,
+            LegalTechPermissions.Contracts.Amend,
+            LegalTechPermissions.Contracts.Terminate,
+            LegalTechPermissions.Contracts.ViewGovFields
+        };
+
+        var roleNames = new[] { LegalTechRoles.LegalOpsManager, LegalTechRoles.TenantAdmin, "admin", LegalTechRoles.HostAdmin };
+
+        await GrantPermissionsAsync(govPerms, roleNames);
     }
 
     private async Task GrantClausesPermissionsAsync()

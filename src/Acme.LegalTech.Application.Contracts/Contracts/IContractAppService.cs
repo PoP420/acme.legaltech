@@ -16,4 +16,8 @@ public interface IContractAppService :
         ContractUpdateDto>
 {
     Task ChangeStatusAsync(Guid id, ContractChangeStatusDto input);
+    Task<ContractSignatoryDto> AddSignatoryAsync(Guid id, AddSignatoryDto input);
+    Task<VariationOrderDto> AddVariationOrderAsync(Guid id, AddVariationOrderDto input);
+    Task<ApprovalAuthorityResultDto> GetApprovalAuthorityAsync(Guid id, decimal amount);
+    Task<ContractComplianceDto> GetContractComplianceAsync(Guid id);
 }
