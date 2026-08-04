@@ -6,7 +6,7 @@ import { PermissionDirective } from '@abp/ng.core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatusLabels, ContractStatus } from '../services/contract.service';
+import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatusLabels, ContractStatus, ContractSignatoryDto, VariationOrderDto, ApprovalAuthorityResultDto, AddSignatoryDto, AddVariationOrderDto, DocumentClassification, DocumentClassificationLabels, GovernmentSignatoryRole, GovernmentSignatoryRoleLabels, DocumentPartyType, DocumentPartyTypeLabels, ContractChangeStatusDto } from '../services/contract.service';
 
 @Component({
   selector: 'app-contract-detail',
@@ -38,7 +38,176 @@ import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatu
 
             <dt class="col-sm-3">Owner</dt>
             <dd class="col-sm-9">{{ contract.ownerUserId || '-' }}</dd>
+
+            <dt class="col-sm-3">Document Number</dt>
+            <dd class="col-sm-9">{{ contract.documentNumber || '-' }}</dd>
+
+            <dt class="col-sm-3">Document Series</dt>
+            <dd class="col-sm-9">{{ contract.documentSeries || '-' }}</dd>
+
+            <dt class="col-sm-3">Document Year</dt>
+            <dd class="col-sm-9">{{ contract.documentYear ?? '-' }}</dd>
+
+            <dt class="col-sm-3">Classification</dt>
+            <dd class="col-sm-9">{{ classificationLabel(contract.classification) }}</dd>
+
+            <dt class="col-sm-3">Contract Value</dt>
+            <dd class="col-sm-9">{{ contract.contractValue != null ? (contract.contractValue | currency:'USD') : '-' }}</dd>
+
+            <dt class="col-sm-3">Retention Until</dt>
+            <dd class="col-sm-9">{{ contract.retentionUntil || '-' }}</dd>
           </dl>
+
+          <div class="mt-3" *abpPermission="'LegalTech.Contracts.ChangeStatus'">
+            <label class="form-label">Change Status</label>
+            <div class="btn-toolbar" role="toolbar">
+              <button class="btn btn-outline-primary me-2" *ngIf="canActivate" (click)="onChangeStatus(1)">Activate</button>
+              <button class="btn btn-outline-warning me-2" *ngIf="canExpire" (click)="onChangeStatus(2)">Expire</button>
+              <button class="btn btn-outline-danger" *ngIf="canTerminate" (click)="onChangeStatus(3)">Terminate</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-4" *ngIf="contract?.currentAuthority">
+        <div class="card-header">
+          <h4>Current Approval Authority</h4>
+        </div>
+        <div class="card-body">
+          <dl class="row">
+            <dt class="col-sm-3">Authority</dt>
+            <dd class="col-sm-9">{{ contract.currentAuthority.authorityTitle }}</dd>
+            <dt class="col-sm-3">NEDA Review</dt>
+            <dd class="col-sm-9">{{ contract.currentAuthority.requiresNedaReview ? 'Yes' : 'No' }}</dd>
+            <dt class="col-sm-3">President Approval</dt>
+            <dd class="col-sm-9">{{ contract.currentAuthority.requiresPresident ? 'Yes' : 'No' }}</dd>
+            <dt class="col-sm-3">Allowable Variation</dt>
+            <dd class="col-sm-9">{{ contract.currentAuthority.allowableVariationPercent }}%</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header">
+          <h4>Signatories</h4>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-danger" *ngIf="signatoryError">
+            {{ signatoryErrorMessage }}
+            <button class="btn btn-sm btn-outline-danger ms-2" (click)="clearSignatoryError()">Dismiss</button>
+          </div>
+          <div *abpPermission="'LegalTech.Contracts.ManageSignatories'">
+            <div class="row g-2 mb-3">
+              <div class="col-md-3">
+                <select class="form-select" [(ngModel)]="newSignatory.role">
+                  <option [ngValue]="undefined">Role</option>
+                  <option *ngFor="let item of signatoryRoleOptions" [ngValue]="item.value">{{ item.label }}</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <select class="form-select" [(ngModel)]="newSignatory.partyType">
+                  <option [ngValue]="undefined">Party Type</option>
+                  <option *ngFor="let item of partyTypeOptions" [ngValue]="item.value">{{ item.label }}</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <input class="form-control" placeholder="Party ID" [(ngModel)]="newSignatory.partyId" />
+              </div>
+              <div class="col-md-3">
+                <input class="form-control" placeholder="Government Agency" [(ngModel)]="newSignatory.governmentAgency" />
+              </div>
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-md-3">
+                <input class="form-control" placeholder="Capacity" [(ngModel)]="newSignatory.capacity" />
+              </div>
+              <div class="col-md-2">
+                <input type="number" class="form-control" placeholder="Order" [(ngModel)]="newSignatory.order" />
+              </div>
+              <div class="col-md-3">
+                <input type="date" class="form-control" [(ngModel)]="newSignatory.signedOn" />
+              </div>
+              <div class="col-md-2">
+                <button class="btn btn-primary" (click)="onAddSignatory()" [disabled]="!contract || !newSignatory.role || !newSignatory.partyType || !newSignatory.partyId">Add Signatory</button>
+              </div>
+            </div>
+          </div>
+          <table class="table" *ngIf="signatories.length; else noSignatories">
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Party Type</th>
+                <th>Party ID</th>
+                <th>Agency</th>
+                <th>Capacity</th>
+                <th>Order</th>
+                <th>Signed On</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let signatory of signatories">
+                <td>{{ signatoryRoleLabel(signatory.role) }}</td>
+                <td>{{ partyTypeLabel(signatory.partyType) }}</td>
+                <td>{{ signatory.partyId }}</td>
+                <td>{{ signatory.governmentAgency }}</td>
+                <td>{{ signatory.capacity }}</td>
+                <td>{{ signatory.order }}</td>
+                <td>{{ signatory.signedOn || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <ng-template #noSignatories>
+            <p class="text-muted">No signatories added yet.</p>
+          </ng-template>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header">
+          <h4>Variation Orders</h4>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-danger" *ngIf="variationError">
+            {{ variationErrorMessage }}
+            <button class="btn btn-sm btn-outline-danger ms-2" (click)="clearVariationError()">Dismiss</button>
+          </div>
+          <div class="alert alert-warning" *ngIf="!contract?.contractValue && canAddVariation">
+            Contract Value is required to add variation orders.
+          </div>
+          <div *abpPermission="'LegalTech.Contracts.Amend'">
+            <div class="row g-2 mb-3" *ngIf="contract?.contractValue">
+              <div class="col-md-6">
+                <input class="form-control" placeholder="Description" [(ngModel)]="newVariation.description" />
+              </div>
+              <div class="col-md-3">
+                <input type="number" step="0.01" class="form-control" placeholder="Amount" [(ngModel)]="newVariation.amount" />
+              </div>
+              <div class="col-md-2">
+                <button class="btn btn-primary" (click)="onAddVariation()" [disabled]="!newVariation.description || !newVariation.amount">Add Variation</button>
+              </div>
+            </div>
+          </div>
+          <table class="table" *ngIf="variationOrders.length; else noVariations">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Cumulative</th>
+                <th>Approved On</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let variation of variationOrders">
+                <td>{{ variation.description }}</td>
+                <td>{{ variation.amount | currency:'USD' }}</td>
+                <td>{{ variation.cumulativeAmount | currency:'USD' }}</td>
+                <td>{{ variation.approvedOn || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <ng-template #noVariations>
+            <p class="text-muted">No variation orders yet.</p>
+          </ng-template>
         </div>
       </div>
 
@@ -150,6 +319,8 @@ import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatu
 export class ContractDetailComponent {
   contract: ContractDto | null = null;
   versions: ContractDocumentVersionDto[] = [];
+  signatories: ContractSignatoryDto[] = [];
+  variationOrders: VariationOrderDto[] = [];
   selectedFile: File | null = null;
   changeNote = '';
   uploading = false;
@@ -163,8 +334,59 @@ export class ContractDetailComponent {
   previewBlobUrl: SafeResourceUrl | null = null;
   private currentPreviewObjectUrl: string | null = null;
 
+  signatoryError = false;
+  signatoryErrorMessage = '';
+  variationError = false;
+  variationErrorMessage = '';
+
+  newSignatory: AddSignatoryDto = {
+    role: undefined as any,
+    partyType: undefined as any,
+    partyId: '',
+    governmentAgency: '',
+    capacity: '',
+    order: 0,
+    signedOn: '',
+  };
+
+  newVariation: AddVariationOrderDto = {
+    description: '',
+    amount: 0,
+  };
+
+  signatoryRoleOptions = [
+    { value: 0 as GovernmentSignatoryRole, label: 'Prepared By' },
+    { value: 1 as GovernmentSignatoryRole, label: 'Reviewed By' },
+    { value: 2 as GovernmentSignatoryRole, label: 'Endorsed By' },
+    { value: 3 as GovernmentSignatoryRole, label: 'Approved By' },
+    { value: 4 as GovernmentSignatoryRole, label: 'Authorized Signatory' },
+    { value: 5 as GovernmentSignatoryRole, label: 'Noted By' },
+  ];
+
+  partyTypeOptions = [
+    { value: 0 as DocumentPartyType, label: 'Government Unit' },
+    { value: 1 as DocumentPartyType, label: 'Individual' },
+    { value: 2 as DocumentPartyType, label: 'External' },
+  ];
+
   get statusLabel(): string {
     return this.contract ? ContractStatusLabels[this.contract.status as ContractStatus] || String(this.contract.status) : '-';
+  }
+
+  get canActivate(): boolean {
+    return this.contract?.status === 0;
+  }
+
+  get canExpire(): boolean {
+    return this.contract?.status === 1;
+  }
+
+  get canTerminate(): boolean {
+    return this.contract?.status === 1;
+  }
+
+  get canAddVariation(): boolean {
+    return this.contract?.contractValue != null && this.contract?.contractValue > 0;
   }
 
   constructor(
@@ -182,6 +404,8 @@ export class ContractDetailComponent {
       this.contract = contract;
       if (contract?.id) {
         this.loadVersions(contract.id);
+        this.loadSignatories(contract.id);
+        this.loadVariationOrders(contract.id);
       }
     });
   }
@@ -199,6 +423,26 @@ export class ContractDetailComponent {
         this.versions = [];
       },
     });
+  }
+
+  loadSignatories(contractId: string) {
+    this.signatoryError = false;
+    this.signatoryErrorMessage = '';
+    if (this.contract?.signatories?.length) {
+      this.signatories = [...this.contract.signatories];
+    } else {
+      this.signatories = [];
+    }
+  }
+
+  loadVariationOrders(contractId: string) {
+    this.variationError = false;
+    this.variationErrorMessage = '';
+    if (this.contract?.variationOrders?.length) {
+      this.variationOrders = [...this.contract.variationOrders];
+    } else {
+      this.variationOrders = [];
+    }
   }
 
   onFileSelected(event: Event) {
@@ -290,7 +534,7 @@ export class ContractDetailComponent {
     return version.contentType === 'application/pdf';
   }
 
-   extractionLabel(status: string | null | undefined): string {
+  extractionLabel(status: string | null | undefined): string {
     if (!status) return 'Pending';
     return status;
   }
@@ -308,5 +552,84 @@ export class ContractDetailComponent {
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  onChangeStatus(targetStatus: ContractStatus) {
+    if (!this.contract) return;
+    if (!confirm(`Change status to ${ContractStatusLabels[targetStatus]}?`)) return;
+    this.contractService.changeStatus(this.contract.id, { targetStatus }).subscribe({
+      next: (updated) => {
+        this.contract = updated;
+        this.loadSignatories(updated.id);
+        this.loadVariationOrders(updated.id);
+      },
+      error: (err) => {
+        alert(err?.message || 'Failed to change status.');
+      },
+    });
+  }
+
+  onAddSignatory() {
+    if (!this.contract || !this.newSignatory.role || !this.newSignatory.partyType || !this.newSignatory.partyId) return;
+    this.contractService.addSignatory(this.contract.id, { ...this.newSignatory }).subscribe({
+      next: (signatory) => {
+        this.signatories = [...this.signatories, signatory];
+        this.newSignatory = {
+          role: undefined as any,
+          partyType: undefined as any,
+          partyId: '',
+          governmentAgency: '',
+          capacity: '',
+          order: 0,
+          signedOn: '',
+        };
+      },
+      error: (err) => {
+        this.signatoryError = true;
+        this.signatoryErrorMessage = err?.message || 'Failed to add signatory.';
+      },
+    });
+  }
+
+  clearSignatoryError() {
+    this.signatoryError = false;
+    this.signatoryErrorMessage = '';
+  }
+
+  onAddVariation() {
+    if (!this.contract || !this.newVariation.description || !this.newVariation.amount) return;
+    if (!this.contract.contractValue) {
+      this.variationError = true;
+      this.variationErrorMessage = 'ContractValue is required to add a variation order.';
+      return;
+    }
+    this.contractService.addVariationOrder(this.contract.id, { ...this.newVariation }).subscribe({
+      next: (variation) => {
+        this.variationOrders = [...this.variationOrders, variation];
+        this.newVariation = { description: '', amount: 0 };
+      },
+      error: (err) => {
+        this.variationError = true;
+        this.variationErrorMessage = err?.message || 'Failed to add variation order.';
+      },
+    });
+  }
+
+  clearVariationError() {
+    this.variationError = false;
+    this.variationErrorMessage = '';
+  }
+
+  classificationLabel(classification: DocumentClassification | undefined): string {
+    if (classification === undefined || classification === null) return '-';
+    return DocumentClassificationLabels[classification] || String(classification);
+  }
+
+  signatoryRoleLabel(role: GovernmentSignatoryRole): string {
+    return GovernmentSignatoryRoleLabels[role] || String(role);
+  }
+
+  partyTypeLabel(partyType: DocumentPartyType): string {
+    return DocumentPartyTypeLabels[partyType] || String(partyType);
   }
 }

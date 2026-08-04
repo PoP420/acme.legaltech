@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Acme.LegalTech.Common;
 using Volo.Abp.Application.Dtos;
 
 namespace Acme.LegalTech.Contracts;

@@ -44,7 +44,8 @@ public class LegalTechDbContext :
     public DbSet<VariationOrder> VariationOrders { get; set; }
     public DbSet<GovernmentApprovalTier> GovernmentApprovalTiers { get; set; }
     public DbSet<ClauseTemplate> ClauseTemplates { get; set; }
-    public DbSet<ClauseTaxonomy> ClauseTaxonomies { get; set; }
+
+     public DbSet<ClauseTaxonomy> ClauseTaxonomies { get; set; }
     public DbSet<PlaybookProfile> PlaybookProfiles { get; set; }
     public DbSet<PlaybookRule> PlaybookRules { get; set; }
     public DbSet<ReviewCase> ReviewCases { get; set; }
@@ -57,13 +58,6 @@ public class LegalTechDbContext :
     public DbSet<ObligationReminder> ObligationReminders { get; set; }
     public DbSet<CompletionEvidence> CompletionEvidence { get; set; }
     
-    // New DbSets for government contract compliance
-    public DbSet<VariationOrder> VariationOrders { get; set; }
-    public DbSet<GovernmentApprovalTier> GovernmentApprovalTiers { get; set; }
-
-
-    #region Entities from the modules
-
     /* Notice: We only implemented IIdentityProDbContext and ISaasDbContext
      * and replaced them for this DbContext. This allows you to perform JOIN
      * queries for the entities of these modules over the repositories easily. You
@@ -88,8 +82,6 @@ public class LegalTechDbContext :
     // Tenant Management
     public DbSet<Tenant> Tenants { get; set; }
     public DbSet<TenantConnectionString> TenantConnectionStrings { get; set; }
-
-    #endregion
 
     public LegalTechDbContext(DbContextOptions<LegalTechDbContext> options)
         : base(options)
@@ -325,7 +317,7 @@ public class LegalTechDbContext :
             b.ConfigureByConvention();
 
             b.HasIndex(v => v.ContractId);
-            b.HasIndex(v => v.OrderId);
+            b.HasIndex(v => v.ApprovedBy);
         });
 
         // Configure GovernmentApprovalTier entity

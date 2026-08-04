@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { Router, ActivatedRoute, ParamMap } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormArray } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { ContractService, ContractDto } from '../services/contract.service';
+import { ContractService, ContractDto, DocumentClassification, DocumentClassificationLabels } from '../services/contract.service';
 import { switchMap, EMPTY } from 'rxjs';
 
 @Component({
@@ -41,6 +41,37 @@ import { switchMap, EMPTY } from 'rxjs';
           <label class="form-label">Owner User ID</label>
           <input class="form-control" formControlName="ownerUserId" />
         </div>
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Document Number</label>
+            <input class="form-control" formControlName="documentNumber" />
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Document Series</label>
+            <input class="form-control" formControlName="documentSeries" />
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Document Year</label>
+            <input type="number" class="form-control" formControlName="documentYear" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Classification</label>
+            <select class="form-select" formControlName="classification">
+              <option [ngValue]="undefined">Unclassified</option>
+              <option *ngFor="let item of classificationOptions" [ngValue]="item.value">{{ item.label }}</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Contract Value</label>
+            <input type="number" step="0.01" class="form-control" formControlName="contractValue" />
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Retention Until</label>
+          <input type="date" class="form-control" formControlName="retentionUntil" />
+        </div>
         <div class="mb-3">
           <label class="form-label">Tags <small class="text-muted">(comma-separated)</small></label>
           <input class="form-control" [value]="tagsInput" (input)="onTagsInput($event)" />
@@ -75,6 +106,12 @@ export class CreateOrEditContractComponent {
   isEdit = false;
   editingId: string | null = null;
   tagsInput = '';
+  classificationOptions = [
+    { value: 0 as DocumentClassification, label: 'Unclassified' },
+    { value: 1 as DocumentClassification, label: 'For Official Use Only' },
+    { value: 2 as DocumentClassification, label: 'Confidential' },
+    { value: 3 as DocumentClassification, label: 'Strictly Confidential' },
+  ];
 
   constructor(
     private fb: FormBuilder,
@@ -91,6 +128,12 @@ export class CreateOrEditContractComponent {
       effectiveDate: [''],
       expirationDate: [''],
       ownerUserId: [''],
+      documentNumber: [''],
+      documentSeries: [''],
+      documentYear: [''],
+      classification: [''],
+      retentionUntil: [''],
+      contractValue: [''],
       tags: [[]],
       counterparties: this.fb.array([]),
     });
@@ -152,6 +195,12 @@ export class CreateOrEditContractComponent {
       effectiveDate: contract.effectiveDate || '',
       expirationDate: contract.expirationDate || '',
       ownerUserId: contract.ownerUserId || '',
+      documentNumber: contract.documentNumber || '',
+      documentSeries: contract.documentSeries || '',
+      documentYear: contract.documentYear ?? '',
+      classification: contract.classification ?? undefined,
+      retentionUntil: contract.retentionUntil || '',
+      contractValue: contract.contractValue ?? '',
     });
     this.tagsInput = contract.tags?.map(t => t.name).join(', ') || '';
     if (contract.counterparties?.length) {
