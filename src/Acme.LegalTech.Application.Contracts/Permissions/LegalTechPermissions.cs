@@ -28,31 +28,31 @@ public static class LegalTechPermissions
         ];
     }
 
-public static class Contracts
-{
-    public const string Default = Groups.Contracts;
-    public const string Create = Default + ".Create";
-    public const string Edit = Default + ".Edit";
-    public const string ChangeStatus = Default + ".ChangeStatus";
-    public const string AttachDocument = Default + ".AttachDocument";
-    public const string ManageSignatories = Default + ".ManageSignatories";
-    public const string Amend = Default + ".Amend";
-    public const string Terminate = Default + ".Terminate";
-    public const string ViewGovFields = Default + ".ViewGovFields";
+    public static class Contracts
+    {
+        public const string Default = Groups.Contracts;
+        public const string Create = Default + ".Create";
+        public const string Edit = Default + ".Edit";
+        public const string ChangeStatus = Default + ".ChangeStatus";
+        public const string AttachDocument = Default + ".AttachDocument";
+        public const string ManageSignatories = Default + ".ManageSignatories";
+        public const string Amend = Default + ".Amend";
+        public const string Terminate = Default + ".Terminate";
+        public const string ViewGovFields = Default + ".ViewGovFields";
 
-    public static readonly IReadOnlyList<string> All =
-    [
-        Default,
-        Create,
-        Edit,
-        ChangeStatus,
-        AttachDocument,
-        ManageSignatories,
-        Amend,
-        Terminate,
-        ViewGovFields
-    ];
-}
+        public static readonly IReadOnlyList<string> All =
+        [
+            Default,
+            Create,
+            Edit,
+            ChangeStatus,
+            AttachDocument,
+            ManageSignatories,
+            Amend,
+            Terminate,
+            ViewGovFields
+        ];
+    }
 
     public static class Clauses
     {

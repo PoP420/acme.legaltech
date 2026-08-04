@@ -8,4 +8,5 @@ public static class ContractConsts
     public const int MaxRiskBaselineLength = 64;
     public const int MaxDocumentFileNameLength = 256;
     public const int MaxChangeNoteLength = 512;
+    public const int MaxApprovalAuthorityTitleLength = 256;
 }

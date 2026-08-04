@@ -27,17 +27,26 @@ public class ContractAppService :
     private readonly LegalTechApplicationMappers _mappers = new();
     private readonly IRepository<ContractTag, Guid> _contractTagRepository;
     private readonly IRepository<CounterpartyReference, Guid> _counterpartyReferenceRepository;
+    private readonly IRepository<ContractSignatory, Guid> _contractSignatoryRepository;
+    private readonly IRepository<VariationOrder, Guid> _variationOrderRepository;
+    private readonly IRepository<GovernmentApprovalTier, Guid> _approvalTierRepository;
     private readonly ICurrentTenant _currentTenant;
 
     public ContractAppService(
         IRepository<Contract, Guid> repository,
         IRepository<ContractTag, Guid> contractTagRepository,
         IRepository<CounterpartyReference, Guid> counterpartyReferenceRepository,
+        IRepository<ContractSignatory, Guid> contractSignatoryRepository,
+        IRepository<VariationOrder, Guid> variationOrderRepository,
+        IRepository<GovernmentApprovalTier, Guid> approvalTierRepository,
         ICurrentTenant currentTenant)
         : base(repository)
     {
         _contractTagRepository = contractTagRepository;
         _counterpartyReferenceRepository = counterpartyReferenceRepository;
+        _contractSignatoryRepository = contractSignatoryRepository;
+        _variationOrderRepository = variationOrderRepository;
+        _approvalTierRepository = approvalTierRepository;
         _currentTenant = currentTenant;
     }
 
@@ -53,6 +62,26 @@ public class ContractAppService :
         dto.Counterparties = (await _counterpartyReferenceRepository.GetListAsync(c => c.ContractId == id))
             .Select(c => _mappers.MapToCounterpartyReferenceDto(c))
             .ToList();
+
+        dto.Signatories = (await _contractSignatoryRepository.GetListAsync(s => s.ContractId == id))
+            .Select(s => _mappers.MapToContractSignatoryDto(s))
+            .OrderBy(s => s.Order)
+            .ToList();
+
+        dto.VariationOrders = (await _variationOrderRepository.GetListAsync(v => v.ContractId == id))
+            .Select(v => _mappers.MapToVariationOrderDto(v))
+            .OrderBy(v => v.CumulativeAmount)
+            .ToList();
+
+        var tiers = await _approvalTierRepository.GetListAsync();
+        var computedTier = tiers.Any() ? entity.ComputeApprovingAuthority(entity.ContractValue ?? 0, tiers) : null;
+        dto.CurrentAuthority = computedTier != null ? new ApprovalAuthorityResultDto
+        {
+            AuthorityTitle = entity.LastApprovalAuthorityTitle ?? computedTier.AuthorityTitle,
+            RequiresNedaReview = entity.LastApprovalRequiresNeda,
+            RequiresPresident = entity.LastApprovalRequiresPresident,
+            AllowableVariationPercent = computedTier.AllowableVariationPercent
+        } : null;
 
         return dto;
     }
@@ -207,5 +236,99 @@ public class ContractAppService :
         }
 
         await Repository.UpdateAsync(contract);
+    }
+
+    [Authorize(LegalTechPermissions.Contracts.ManageSignatories)]
+    public async Task<ContractSignatoryDto> AddSignatoryAsync(Guid id, AddSignatoryDto input)
+    {
+        var contract = await Repository.GetAsync(id);
+        var tenantId = _currentTenant.Id;
+
+        var signatory = new ContractSignatory(
+            Guid.NewGuid(),
+            tenantId,
+            id,
+            input.Role,
+            input.PartyType,
+            input.PartyId,
+            input.GovernmentAgency,
+            input.Capacity,
+            input.Order,
+            input.SignedOn);
+
+        contract.AddSignatory(signatory);
+        await _contractSignatoryRepository.InsertAsync(signatory, autoSave: true);
+
+        return _mappers.MapToContractSignatoryDto(signatory);
+    }
+
+    [Authorize(LegalTechPermissions.Contracts.Amend)]
+    public async Task<VariationOrderDto> AddVariationOrderAsync(Guid id, AddVariationOrderDto input)
+    {
+        var contract = await Repository.GetAsync(id);
+        var tenantId = _currentTenant.Id;
+        var tiers = await _approvalTierRepository.GetListAsync();
+
+        var variationOrder = new VariationOrder(
+            Guid.NewGuid(),
+            tenantId,
+            id,
+            input.Description,
+            input.Amount,
+            input.Amount);
+
+        contract.AddVariationOrder(variationOrder, tiers);
+        await _variationOrderRepository.InsertAsync(variationOrder, autoSave: true);
+
+        return _mappers.MapToVariationOrderDto(variationOrder);
+    }
+
+    [Authorize(LegalTechPermissions.Contracts.ViewGovFields)]
+    public async Task<ApprovalAuthorityResultDto> GetApprovalAuthorityAsync(Guid id, decimal amount)
+    {
+        var contract = await Repository.GetAsync(id);
+        var tiers = await _approvalTierRepository.GetListAsync();
+
+        var tier = contract.ComputeApprovingAuthority(amount, tiers);
+
+        return new ApprovalAuthorityResultDto
+        {
+            AuthorityTitle = tier.AuthorityTitle,
+            RequiresNedaReview = tier.RequiresNedaReview,
+            RequiresPresident = tier.RequiresPresident,
+            AllowableVariationPercent = tier.AllowableVariationPercent,
+            LastApprovalAuthorityTitle = contract.LastApprovalAuthorityTitle,
+            LastApprovalRequiresNeda = contract.LastApprovalRequiresNeda,
+            LastApprovalRequiresPresident = contract.LastApprovalRequiresPresident
+        };
+    }
+
+    [Authorize(LegalTechPermissions.Contracts.ViewGovFields)]
+    public async Task<ContractComplianceDto> GetContractComplianceAsync(Guid id)
+    {
+        var contract = await Repository.GetAsync(id);
+        var signatories = await _contractSignatoryRepository.GetListAsync(s => s.ContractId == id);
+        var variationOrders = await _variationOrderRepository.GetListAsync(v => v.ContractId == id);
+        var tiers = await _approvalTierRepository.GetListAsync();
+        var computedTier = tiers.Any() ? contract.ComputeApprovingAuthority(contract.ContractValue ?? 0, tiers) : null;
+
+        return new ContractComplianceDto
+        {
+            DocumentNumber = contract.DocumentNumber,
+            DocumentSeries = contract.DocumentSeries,
+            DocumentYear = contract.DocumentYear,
+            Classification = contract.Classification,
+            RetentionUntil = contract.RetentionUntil,
+            ContractValue = contract.ContractValue,
+            Signatories = signatories.Select(s => _mappers.MapToContractSignatoryDto(s)).OrderBy(s => s.Order).ToList(),
+            VariationOrders = variationOrders.Select(v => _mappers.MapToVariationOrderDto(v)).OrderBy(v => v.CumulativeAmount).ToList(),
+            CurrentAuthority = computedTier != null ? new ApprovalAuthorityResultDto
+            {
+                AuthorityTitle = contract.LastApprovalAuthorityTitle ?? computedTier.AuthorityTitle,
+                RequiresNedaReview = contract.LastApprovalRequiresNeda,
+                RequiresPresident = contract.LastApprovalRequiresPresident,
+                AllowableVariationPercent = computedTier.AllowableVariationPercent
+            } : null
+        };
     }
 }
