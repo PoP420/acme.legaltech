@@ -1,8 +1,5 @@
 namespace Acme.LegalTech.Common;
 
-/// <summary>
-/// Document classification levels for government contracts.
-/// </summary>
 public enum DocumentClassification
 {
     Unclassified = 0,

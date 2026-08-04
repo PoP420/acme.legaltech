@@ -1,27 +1,24 @@
 using System;
 using Acme.LegalTech.Common;
+using Volo.Abp;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.MultiTenancy;
 
 namespace Acme.LegalTech.Contracts;
 
-/// <summary>
-/// Represents a signatory on a government contract.
-/// This is owned by Contract and follows its lifecycle.
-/// </summary>
-public class ContractSignatory : IMultiTenant
+public class ContractSignatory : Entity<Guid>, IMultiTenant
 {
-    public Guid? TenantId { get; private set; }
-    public Guid ContractId { get; private set; }
-    public GovernmentSignatoryRole Role { get; private set; }
-    public DocumentPartyType PartyType { get; private set; }
-    public string? PartyId { get; private set; } // System ID or free-text for external
-    public string? GovernmentAgency { get; private set; } // Free text / org unit
-    public DateTime? SignedOn { get; private set; }
-    public string? Capacity { get; private set; } // Free text, e.g. "Head, Procurement Service"
-    public int Order { get; private set; } // Display order
+    public Guid? TenantId { get; protected set; }
+    public Guid ContractId { get; protected set; }
+    public GovernmentSignatoryRole Role { get; protected set; }
+    public DocumentPartyType PartyType { get; protected set; }
+    public string PartyId { get; protected set; } = string.Empty;
+    public string GovernmentAgency { get; protected set; } = string.Empty;
+    public string Capacity { get; protected set; } = string.Empty;
+    public int Order { get; protected set; }
+    public DateTime? SignedOn { get; protected set; }
 
-    private ContractSignatory() { }
+    public ContractSignatory() { }
 
     public ContractSignatory(
         Guid id,
@@ -29,22 +26,21 @@ public class ContractSignatory : IMultiTenant
         Guid contractId,
         GovernmentSignatoryRole role,
         DocumentPartyType partyType,
-        string? partyId,
-        string? governmentAgency,
-        DateTime? signedOn,
-        string? capacity,
-        int order)
+        string partyId,
+        string governmentAgency,
+        string capacity,
+        int order,
+        DateTime? signedOn = null)
+        : base(id)
     {
-        // Note: Id parameter is not used as this is an owned entity
-        // but kept for constructor pattern consistency
         TenantId = tenantId;
         ContractId = contractId;
         Role = role;
         PartyType = partyType;
-        PartyId = partyId;
-        GovernmentAgency = governmentAgency;
-        SignedOn = signedOn;
-        Capacity = capacity;
+        PartyId = Check.NotNullOrWhiteSpace(partyId, nameof(partyId), maxLength: ContractGovConsts.MaxPartyNameLength);
+        GovernmentAgency = Check.NotNullOrWhiteSpace(governmentAgency, nameof(governmentAgency));
+        Capacity = Check.NotNullOrWhiteSpace(capacity, nameof(capacity), maxLength: ContractGovConsts.MaxCapacityLength);
         Order = order;
+        SignedOn = signedOn;
     }
 }

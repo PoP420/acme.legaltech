@@ -13,8 +13,8 @@ using Volo.Abp.EntityFrameworkCore;
 namespace Acme.LegalTech.Migrations
 {
     [DbContext(typeof(LegalTechDbContext))]
-    [Migration("20260731093835_20260731010000_Module04_GovCompliance")]
-    partial class _20260731010000_Module04_GovCompliance
+    [Migration("20260804015755_20260804093914_Module04_GovCompliance")]
+    partial class _20260804093914_Module04_GovCompliance
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -164,7 +164,7 @@ namespace Acme.LegalTech.Migrations
                     b.Property<string>("Category")
                         .HasColumnType("text");
 
-                    b.Property<int?>("Classification")
+                    b.Property<int>("Classification")
                         .HasColumnType("integer");
 
                     b.Property<string>("ConcurrencyStamp")
@@ -226,6 +226,15 @@ namespace Acme.LegalTech.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("IsDeleted");
 
+                    b.Property<string>("LastApprovalAuthorityTitle")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("LastApprovalRequiresNeda")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("LastApprovalRequiresPresident")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime?>("LastModificationTime")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("LastModificationTime");
@@ -257,6 +266,10 @@ namespace Acme.LegalTech.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Category");
+
+                    b.HasIndex("Classification");
+
+                    b.HasIndex("DocumentNumber");
 
                     b.HasIndex("OwnerUserId");
 
@@ -315,6 +328,51 @@ namespace Acme.LegalTech.Migrations
                         .IsUnique();
 
                     b.ToTable("AppContractDocumentVersions", (string)null);
+                });
+
+            modelBuilder.Entity("Acme.LegalTech.Contracts.ContractSignatory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Capacity")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ContractId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("GovernmentAgency")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PartyId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("PartyType")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SignedOn")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("TenantId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractId");
+
+                    b.HasIndex("ContractId", "PartyId");
+
+                    b.ToTable("AppContractSignatories", (string)null);
                 });
 
             modelBuilder.Entity("Acme.LegalTech.Contracts.ContractTag", b =>
@@ -451,15 +509,45 @@ namespace Acme.LegalTech.Migrations
                         .HasColumnType("character varying(40)")
                         .HasColumnName("ConcurrencyStamp");
 
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("DeletionTime");
+
                     b.Property<string>("ExtraProperties")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("ExtraProperties");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
+
                     b.Property<bool>("RequiresNedaReview")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("RequiresPresidentApproval")
+                    b.Property<bool>("RequiresPresident")
                         .HasColumnType("boolean");
 
                     b.Property<Guid?>("TenantId")
@@ -470,8 +558,7 @@ namespace Acme.LegalTech.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.HasIndex("TenantId", "AmountFrom", "AmountTo")
-                        .IsUnique();
+                    b.HasIndex("AmountFrom", "AmountTo");
 
                     b.ToTable("AppGovernmentApprovalTiers", (string)null);
                 });
@@ -484,10 +571,10 @@ namespace Acme.LegalTech.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("numeric");
 
-                    b.Property<string>("ApprovedBy")
-                        .HasColumnType("text");
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
 
-                    b.Property<DateTime>("ApprovedOn")
+                    b.Property<DateTime?>("ApprovedOn")
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("ContractId")
@@ -500,18 +587,15 @@ namespace Acme.LegalTech.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uuid");
-
                     b.Property<Guid?>("TenantId")
                         .HasColumnType("uuid")
                         .HasColumnName("TenantId");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ContractId");
+                    b.HasIndex("ApprovedBy");
 
-                    b.HasIndex("OrderId");
+                    b.HasIndex("ContractId");
 
                     b.ToTable("AppVariationOrders", (string)null);
                 });
@@ -3091,59 +3175,22 @@ namespace Acme.LegalTech.Migrations
                     b.Navigation("Taxonomy");
                 });
 
-            modelBuilder.Entity("Acme.LegalTech.Contracts.Contract", b =>
+            modelBuilder.Entity("Acme.LegalTech.Contracts.ContractSignatory", b =>
                 {
-                    b.OwnsMany("Acme.LegalTech.Contracts.ContractSignatory", "Signatories", b1 =>
-                        {
-                            b1.Property<int>("Id")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("integer");
+                    b.HasOne("Acme.LegalTech.Contracts.Contract", null)
+                        .WithMany("Signatories")
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
 
-                            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b1.Property<int>("Id"));
-
-                            b1.Property<string>("Capacity")
-                                .HasColumnType("text");
-
-                            b1.Property<int>("Classification")
-                                .HasColumnType("integer");
-
-                            b1.Property<Guid>("ContractId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<string>("GovernmentAgency")
-                                .HasColumnType("text");
-
-                            b1.Property<int>("Order")
-                                .HasColumnType("integer");
-
-                            b1.Property<string>("PartyId")
-                                .HasColumnType("text");
-
-                            b1.Property<int>("PartyType")
-                                .HasColumnType("integer");
-
-                            b1.Property<int>("Role")
-                                .HasColumnType("integer");
-
-                            b1.Property<DateTime?>("SignedOn")
-                                .HasColumnType("timestamp without time zone");
-
-                            b1.Property<Guid?>("TenantId")
-                                .HasColumnType("uuid");
-
-                            b1.HasKey("Id");
-
-                            b1.HasIndex("ContractId", "Role")
-                                .IsUnique()
-                                .HasFilter("[Role] = 4");
-
-                            b1.ToTable("AppContractSignatories", (string)null);
-
-                            b1.WithOwner()
-                                .HasForeignKey("ContractId");
-                        });
-
-                    b.Navigation("Signatories");
+            modelBuilder.Entity("Acme.LegalTech.Contracts.VariationOrder", b =>
+                {
+                    b.HasOne("Acme.LegalTech.Contracts.Contract", null)
+                        .WithMany("VariationOrders")
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Acme.LegalTech.Obligations.CompletionEvidence", b =>
@@ -3433,6 +3480,13 @@ namespace Acme.LegalTech.Migrations
             modelBuilder.Entity("Acme.LegalTech.Clauses.ClauseTaxonomy", b =>
                 {
                     b.Navigation("Children");
+                });
+
+            modelBuilder.Entity("Acme.LegalTech.Contracts.Contract", b =>
+                {
+                    b.Navigation("Signatories");
+
+                    b.Navigation("VariationOrders");
                 });
 
             modelBuilder.Entity("Acme.LegalTech.Obligations.ContractObligation", b =>

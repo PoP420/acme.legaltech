@@ -11,6 +11,30 @@ export interface ContractCreateRequest {
   effectiveDate?: string;
   expirationDate?: string;
   ownerUserId?: string;
+  documentNumber?: string;
+  documentSeries?: string;
+  documentYear?: number;
+  classification?: DocumentClassification;
+  retentionUntil?: string;
+  contractValue?: number;
+  tags?: Array<{ name: string }>;
+  counterparties?: Array<{ name: string; externalReference?: string }>;
+}
+
+export interface ContractUpdateRequest {
+  title: string;
+  counterpartyName: string;
+  category?: string;
+  riskBaseline?: string;
+  effectiveDate?: string;
+  expirationDate?: string;
+  ownerUserId?: string;
+  documentNumber?: string;
+  documentSeries?: string;
+  documentYear?: number;
+  classification?: DocumentClassification;
+  retentionUntil?: string;
+  contractValue?: number;
   tags?: Array<{ name: string }>;
   counterparties?: Array<{ name: string; externalReference?: string }>;
 }
@@ -27,9 +51,18 @@ export interface ContractDto {
   expirationDate?: string | null;
   ownerUserId?: string | null;
   riskBaseline?: string | null;
+  documentNumber?: string | null;
+  documentSeries?: string | null;
+  documentYear?: number | null;
+  classification?: DocumentClassification;
+  retentionUntil?: string | null;
+  contractValue?: number | null;
   tags?: Array<{ id: string; name: string }>;
   counterparties?: Array<{ id: string; name: string; externalReference?: string }>;
   documentVersions?: ContractDocumentVersionDto[];
+  signatories?: ContractSignatoryDto[];
+  variationOrders?: VariationOrderDto[];
+  currentAuthority?: ApprovalAuthorityResultDto;
 }
 
 export interface ContractDocumentVersionDto {
@@ -53,6 +86,70 @@ export interface ContractDocumentVersionDto {
   extractedRiskBaseline?: string | null;
 }
 
+export interface ContractSignatoryDto {
+  id: string;
+  contractId: string;
+  role: GovernmentSignatoryRole;
+  partyType: DocumentPartyType;
+  partyId: string;
+  governmentAgency: string;
+  capacity: string;
+  order: number;
+  signedOn?: string | null;
+}
+
+export interface VariationOrderDto {
+  id: string;
+  contractId: string;
+  description: string;
+  amount: number;
+  cumulativeAmount: number;
+  approvedById?: string | null;
+  approvedOn?: string | null;
+}
+
+export interface ApprovalAuthorityResultDto {
+  authorityTitle: string;
+  requiresNedaReview: boolean;
+  requiresPresident: boolean;
+  allowableVariationPercent: number;
+  lastApprovalAuthorityTitle?: string | null;
+  lastApprovalRequiresNeda?: boolean;
+  lastApprovalRequiresPresident?: boolean;
+}
+
+export interface ContractComplianceDto {
+  documentNumber?: string | null;
+  documentSeries?: string | null;
+  documentYear?: number | null;
+  classification: DocumentClassification;
+  retentionUntil?: string | null;
+  contractValue?: number | null;
+  signatories: ContractSignatoryDto[];
+  variationOrders: VariationOrderDto[];
+  currentAuthority?: ApprovalAuthorityResultDto | null;
+}
+
+export interface AddSignatoryDto {
+  role: GovernmentSignatoryRole;
+  partyType: DocumentPartyType;
+  partyId: string;
+  governmentAgency: string;
+  capacity: string;
+  order: number;
+  signedOn?: string | null;
+}
+
+export interface AddVariationOrderDto {
+  description: string;
+  amount: number;
+}
+
+export interface ContractChangeStatusDto {
+  targetStatus: ContractStatus;
+  changeNote?: string;
+}
+
 export type ContractStatus = 0 | 1 | 2 | 3;
 
 export const ContractStatusLabels: Record<ContractStatus, string> = {
@@ -62,10 +159,42 @@ export const ContractStatusLabels: Record<ContractStatus, string> = {
   3: 'Terminated',
 };
 
+export type DocumentClassification = 0 | 1 | 2 | 3;
+
+export const DocumentClassificationLabels: Record<DocumentClassification, string> = {
+  0: 'Unclassified',
+  1: 'For Official Use Only',
+  2: 'Confidential',
+  3: 'Strictly Confidential',
+};
+
+export type GovernmentSignatoryRole = 0 | 1 | 2 | 3 | 4 | 5;
+
+export const GovernmentSignatoryRoleLabels: Record<GovernmentSignatoryRole, string> = {
+  0: 'Prepared By',
+  1: 'Reviewed By',
+  2: 'Endorsed By',
+  3: 'Approved By',
+  4: 'Authorized Signatory',
+  5: 'Noted By',
+};
+
+export type DocumentPartyType = 0 | 1 | 2;
+
+export const DocumentPartyTypeLabels: Record<DocumentPartyType, string> = {
+  0: 'Government Unit',
+  1: 'Individual',
+  2: 'External',
+};
+
 export interface GetContractsInput {
   maxResultCount?: number;
   skipCount?: number;
   sorting?: string;
+  filter?: string;
+  status?: ContractStatus;
+  category?: string;
+  ownerUserId?: string;
 }
 
 @Injectable({
@@ -85,6 +214,10 @@ export class ContractService {
         maxResultCount: input.maxResultCount ?? 10,
         skipCount: input.skipCount ?? 0,
         ...(input.sorting ? { sorting: input.sorting } : {}),
+        ...(input.filter ? { filter: input.filter } : {}),
+        ...(input.status !== undefined ? { status: input.status } : {}),
+        ...(input.category ? { category: input.category } : {}),
+        ...(input.ownerUserId ? { ownerUserId: input.ownerUserId } : {}),
       },
     }, {
       apiName: this.apiName,
@@ -110,11 +243,74 @@ export class ContractService {
     });
   }
 
-  update(id: string, input: Partial<ContractCreateRequest>): Observable<ContractDto> {
-    return this.restService.request<Partial<ContractCreateRequest>, ContractDto>({
+  update(id: string, input: ContractUpdateRequest): Observable<ContractDto> {
+    return this.restService.request<ContractUpdateRequest, ContractDto>({
       method: 'PUT',
       url: `/api/app/contract/${id}`,
       body: input,
+    }, {
+      apiName: this.apiName,
+    });
+  }
+
+  changeStatus(id: string, input: ContractChangeStatusDto): Observable<ContractDto> {
+    return this.restService.request<ContractChangeStatusDto, ContractDto>({
+      method: 'POST',
+      url: `/api/app/contract/change-status?id=${id}`,
+      body: input,
+    }, {
+      apiName: this.apiName,
+    }).pipe(
+      catchError(error => {
+        console.error('Failed to change contract status', error);
+        return throwError(() => error);
+      }),
+    );
+  }
+
+  addSignatory(id: string, input: AddSignatoryDto): Observable<ContractSignatoryDto> {
+    return this.restService.request<AddSignatoryDto, ContractSignatoryDto>({
+      method: 'POST',
+      url: `/api/app/contract/add-signatory?id=${id}`,
+      body: input,
+    }, {
+      apiName: this.apiName,
+    }).pipe(
+      catchError(error => {
+        console.error('Failed to add signatory', error);
+        return throwError(() => error);
+      }),
+    );
+  }
+
+  addVariationOrder(id: string, input: AddVariationOrderDto): Observable<VariationOrderDto> {
+    return this.restService.request<AddVariationOrderDto, VariationOrderDto>({
+      method: 'POST',
+      url: `/api/app/contract/add-variation-order?id=${id}`,
+      body: input,
+    }, {
+      apiName: this.apiName,
+    }).pipe(
+      catchError(error => {
+        console.error('Failed to add variation order', error);
+        return throwError(() => error);
+      }),
+    );
+  }
+
+  getApprovalAuthority(id: string, amount: number): Observable<ApprovalAuthorityResultDto> {
+    return this.restService.request<null, ApprovalAuthorityResultDto>({
+      method: 'GET',
+      url: `/api/app/contract/get-approval-authority?id=${id}&amount=${amount}`,
+    }, {
+      apiName: this.apiName,
+    });
+  }
+
+  getCompliance(id: string): Observable<ContractComplianceDto> {
+    return this.restService.request<null, ContractComplianceDto>({
+      method: 'GET',
+      url: `/api/app/contract/get-contract-compliance?id=${id}`,
     }, {
       apiName: this.apiName,
     });

@@ -1,9 +1,7 @@
-using System;
-
 namespace Acme.LegalTech.Contracts;
 
 public class AddVariationOrderDto
 {
-    public decimal AmountDelta { get; set; }
-    public string? Description { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
 }

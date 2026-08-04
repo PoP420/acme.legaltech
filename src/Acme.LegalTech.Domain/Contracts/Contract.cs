@@ -27,15 +27,19 @@ public class Contract : FullAuditedAggregateRoot<Guid>, IMultiTenant
     public string? Category { get; set; }
     public string? RiskBaseline { get; set; }
 
-    // Government contract compliance fields (Task 2)
     public string? DocumentNumber { get; protected set; }
     public string? DocumentSeries { get; protected set; }
     public int? DocumentYear { get; protected set; }
-    public DocumentClassification? Classification { get; protected set; }
+    public DocumentClassification Classification { get; protected set; }
     public DateTime? RetentionUntil { get; protected set; }
-    public decimal? ContractValue { get; protected set; } // Nullable for non-monetary contracts
-    public IReadOnlyList<ContractSignatory> Signatories => _signatories.AsReadOnly();
-    private readonly List<ContractSignatory> _signatories = new();
+    public decimal? ContractValue { get; protected set; }
+
+    public IReadOnlyCollection<ContractSignatory> Signatories { get; protected set; } = new List<ContractSignatory>();
+    public IReadOnlyCollection<VariationOrder> VariationOrders { get; protected set; } = new List<VariationOrder>();
+
+    public string? LastApprovalAuthorityTitle { get; protected set; }
+    public bool LastApprovalRequiresNeda { get; protected set; }
+    public bool LastApprovalRequiresPresident { get; protected set; }
 
     public Contract() { }
 
@@ -50,13 +54,12 @@ public class Contract : FullAuditedAggregateRoot<Guid>, IMultiTenant
         string? category = null,
         string? riskBaseline = null,
         string? documentBlobName = null,
-        // Government contract fields (optional for backward compatibility)
         string? documentNumber = null,
         string? documentSeries = null,
         int? documentYear = null,
         DocumentClassification? classification = null,
-        DateTime? retentionUntil = null,
-        decimal? contractValue = null) : base(id)
+        decimal? contractValue = null)
+        : base(id)
     {
         Title = title;
         CounterpartyName = counterpartyName;
@@ -70,8 +73,7 @@ public class Contract : FullAuditedAggregateRoot<Guid>, IMultiTenant
         DocumentNumber = documentNumber;
         DocumentSeries = documentSeries;
         DocumentYear = documentYear;
-        Classification = classification;
-        RetentionUntil = retentionUntil;
+        Classification = classification ?? DocumentClassification.Unclassified;
         ContractValue = contractValue;
     }
 
@@ -81,128 +83,102 @@ public class Contract : FullAuditedAggregateRoot<Guid>, IMultiTenant
         CounterpartyName = counterpartyName;
     }
 
-    /// <summary>
-    /// Adds a signatory to the contract.
-    /// Throws BusinessException if AuthorizedSignatory role already exists (R2 invariant).
-    /// </summary>
-    public void AddSignatory(
-        GovernmentSignatoryRole role,
-        DocumentPartyType partyType,
-        string? partyId,
-        string? governmentAgency,
-        DateTime? signedOn,
-        string? capacity,
-        int order)
+    public void SetGovFields(
+        string? documentNumber,
+        string? documentSeries,
+        int? documentYear,
+        DocumentClassification? classification,
+        decimal? contractValue)
     {
-        // R2: Enforce AuthorizedSignatory uniqueness
-        if (role == GovernmentSignatoryRole.AuthorizedSignatory &&
-            _signatories.Any(s => s.Role == GovernmentSignatoryRole.AuthorizedSignatory))
+        DocumentNumber = documentNumber;
+        DocumentSeries = documentSeries;
+        DocumentYear = documentYear;
+        if (classification.HasValue)
         {
-            throw new BusinessException("LegalTech:Contract:GovSignatoryNotFound")
+            Classification = classification.Value;
+        }
+        ContractValue = contractValue;
+
+        if (EffectiveDate.HasValue)
+        {
+            RetentionUntil = EffectiveDate.Value.AddYears(5);
+        }
+    }
+
+    public void AddSignatory(ContractSignatory signatory)
+    {
+        if (signatory.Role == GovernmentSignatoryRole.AuthorizedSignatory &&
+            Signatories.Any(s => s.Role == GovernmentSignatoryRole.AuthorizedSignatory))
+        {
+            throw new BusinessException("LegalTech:Contract:GovSignatoryExists")
             {
-                Data = { ["Role"] = role.ToString() }
+                Data = { ["Role"] = GovernmentSignatoryRole.AuthorizedSignatory.ToString() }
             };
         }
 
-        var signatory = new ContractSignatory(
-            Guid.NewGuid(),
-            TenantId,
-            Id,
-            role,
-            partyType,
-            partyId,
-            governmentAgency,
-            signedOn,
-            capacity,
-            order);
-
-        _signatories.Add(signatory);
-        // Sort by Order property
-        _signatories.Sort((s1, s2) => s1.Order.CompareTo(s2.Order));
+        ((List<ContractSignatory>)Signatories).Add(signatory);
     }
 
-    /// <summary>
-    /// Removes a signatory from the contract by role.
-    /// </summary>
-    public void RemoveSignatory(GovernmentSignatoryRole role)
+    public void AddVariationOrder(VariationOrder variationOrder, IList<GovernmentApprovalTier> tiers)
     {
-        var signatory = _signatories.FirstOrDefault(s => s.Role == role);
-        if (signatory != null)
-        {
-            _signatories.Remove(signatory);
-        }
-    }
-
-    /// <summary>
-    /// Adds a variation order (amendment) to the contract.
-    /// Implements R1: Contract value required for variation.
-    /// Implements R3: Variation limit checking against approval tier.
-    /// </summary>
-    public void AddVariationOrder(decimal amountDelta, GovernmentApprovalTier? approvalTier = null)
-    {
-        // R1: Guard against null ContractValue for variation orders
-        if (ContractValue == null)
+        if (ContractValue is null)
         {
             throw new BusinessException("LegalTech:Contract:ValueRequiredForVariation");
         }
 
-        // Store ContractValue in a local variable to avoid CS8602/CS8629 issues
-        decimal currentValue = ContractValue.Value;
-        var newTotal = currentValue + amountDelta;
-        var cumulativePercent = Math.Abs((newTotal - currentValue) / currentValue) * 100;
+        var cumulative = variationOrder.Amount;
+        foreach (var vo in VariationOrders)
+        {
+            cumulative += vo.Amount;
+        }
 
-        // R3: Check against approval tier variation limit (if provided)
-        if (approvalTier != null && cumulativePercent > approvalTier.AllowableVariationPercent)
+        var tier = ComputeApprovingAuthority(ContractValue.Value, tiers);
+        var maxAllowed = ContractValue.Value * (tier.AllowableVariationPercent / 100m);
+        if (cumulative > maxAllowed)
         {
             throw new BusinessException("LegalTech:Contract:ApprovedVariationLimitExceeded")
             {
-                Data = {
-                    ["ContractValue"] = currentValue,
-                    ["NewTotal"] = newTotal,
-                    ["CumulativePercent"] = cumulativePercent,
-                    ["AllowablePercent"] = approvalTier.AllowableVariationPercent
+                Data =
+                {
+                    ["Cumulative"] = cumulative.ToString("F2"),
+                    ["MaxAllowed"] = maxAllowed.ToString("F2"),
+                    ["AuthorityTitle"] = tier.AuthorityTitle
                 }
             };
         }
 
-        // In a full implementation, we would add the variation order to a collection
-        // For now, we just validate and update the contract value if within limits
-        ContractValue = newTotal;
+        variationOrder.CumulativeAmount = cumulative;
+        ((List<VariationOrder>)VariationOrders).Add(variationOrder);
     }
 
-    /// <summary>
-    /// Computes the required approving authority based on contract value.
-    /// Returns the matching GovernmentApprovalTier or null if no match found.
-    /// </summary>
-    public GovernmentApprovalTier? ComputeApprovingAuthority(IEnumerable<GovernmentApprovalTier> tiers)
+    public GovernmentApprovalTier ComputeApprovingAuthority(decimal amount, IList<GovernmentApprovalTier> tiers)
     {
-        if (ContractValue == null)
-            return null;
+        if (tiers == null || tiers.Count == 0)
+        {
+            throw new BusinessException("LegalTech:Contract:ApprovalTierNotFound");
+        }
 
-        // Store ContractValue in a local variable to avoid CS8602/CS8629 issues
-        decimal currentValue = ContractValue.Value;
-        
-        return tiers.FirstOrDefault(t =>
-            currentValue >= t.AmountFrom &&
-            (!t.AmountTo.HasValue || currentValue <= t.AmountTo));
+        foreach (var tier in tiers.OrderBy(t => t.AmountFrom))
+        {
+            if (amount >= tier.AmountFrom && (!tier.AmountTo.HasValue || amount <= tier.AmountTo.Value))
+            {
+                return tier;
+            }
+        }
+
+        return tiers.OrderByDescending(t => t.AmountFrom).First();
     }
 
-    /// <summary>
-    /// Applies an approval to the contract, recording the approving authority.
-    /// Note: RequiresPresident/RequiresNedaReview are informational-only in v1 (R8).
-    /// </summary>
-    public void ApplyApproval(
-        GovernmentApprovalTier approvalTier,
-        GovernmentSignatoryRole? approvingRole = null,
-        string? approvingParty = null,
-        DateTime? approvedOn = null)
+    public void ApplyApproval(GovernmentApprovalTier tier)
     {
-        // In v1, we record the resolved tier but don't enforce presidential/NEDA requirements
-        // These would be enforced in a follow-up slice (R8)
+        if (tier == null)
+        {
+            throw new BusinessException("LegalTech:Contract:ApprovalTierNotFound");
+        }
 
-        // For now, we could store the approval tier reference on the contract
-        // but since we don't have that field yet, we'll just validate the approach
-        // A full implementation would store: ApprovedByTierId, ApprovedByRole, ApprovedByParty, ApprovedOn
+        LastApprovalAuthorityTitle = tier.AuthorityTitle;
+        LastApprovalRequiresNeda = tier.RequiresNedaReview;
+        LastApprovalRequiresPresident = tier.RequiresPresident;
     }
 
     public void Activate()

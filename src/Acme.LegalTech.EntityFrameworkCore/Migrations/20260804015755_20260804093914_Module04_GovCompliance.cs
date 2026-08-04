@@ -1,13 +1,12 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace Acme.LegalTech.Migrations
 {
     /// <inheritdoc />
-    public partial class _20260731010000_Module04_GovCompliance : Migration
+    public partial class _20260804093914_Module04_GovCompliance : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -16,7 +15,8 @@ namespace Acme.LegalTech.Migrations
                 name: "Classification",
                 table: "AppContracts",
                 type: "integer",
-                nullable: true);
+                nullable: false,
+                defaultValue: 0);
 
             migrationBuilder.AddColumn<decimal>(
                 name: "ContractValue",
@@ -42,6 +42,26 @@ namespace Acme.LegalTech.Migrations
                 type: "integer",
                 nullable: true);
 
+            migrationBuilder.AddColumn<string>(
+                name: "LastApprovalAuthorityTitle",
+                table: "AppContracts",
+                type: "text",
+                nullable: true);
+
+            migrationBuilder.AddColumn<bool>(
+                name: "LastApprovalRequiresNeda",
+                table: "AppContracts",
+                type: "boolean",
+                nullable: false,
+                defaultValue: false);
+
+            migrationBuilder.AddColumn<bool>(
+                name: "LastApprovalRequiresPresident",
+                table: "AppContracts",
+                type: "boolean",
+                nullable: false,
+                defaultValue: false);
+
             migrationBuilder.AddColumn<DateTime>(
                 name: "RetentionUntil",
                 table: "AppContracts",
@@ -52,18 +72,16 @@ namespace Acme.LegalTech.Migrations
                 name: "AppContractSignatories",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     TenantId = table.Column<Guid>(type: "uuid", nullable: true),
                     ContractId = table.Column<Guid>(type: "uuid", nullable: false),
                     Role = table.Column<int>(type: "integer", nullable: false),
                     PartyType = table.Column<int>(type: "integer", nullable: false),
-                    PartyId = table.Column<string>(type: "text", nullable: true),
-                    GovernmentAgency = table.Column<string>(type: "text", nullable: true),
-                    SignedOn = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
-                    Capacity = table.Column<string>(type: "text", nullable: true),
+                    PartyId = table.Column<string>(type: "text", nullable: false),
+                    GovernmentAgency = table.Column<string>(type: "text", nullable: false),
+                    Capacity = table.Column<string>(type: "text", nullable: false),
                     Order = table.Column<int>(type: "integer", nullable: false),
-                    Classification = table.Column<int>(type: "integer", nullable: false)
+                    SignedOn = table.Column<DateTime>(type: "timestamp without time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -86,10 +104,17 @@ namespace Acme.LegalTech.Migrations
                     AmountTo = table.Column<decimal>(type: "numeric", nullable: true),
                     AuthorityTitle = table.Column<string>(type: "text", nullable: false),
                     RequiresNedaReview = table.Column<bool>(type: "boolean", nullable: false),
-                    RequiresPresidentApproval = table.Column<bool>(type: "boolean", nullable: false),
+                    RequiresPresident = table.Column<bool>(type: "boolean", nullable: false),
                     AllowableVariationPercent = table.Column<decimal>(type: "numeric", nullable: false),
                     ExtraProperties = table.Column<string>(type: "text", nullable: false),
-                    ConcurrencyStamp = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false)
+                    ConcurrencyStamp = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
+                    CreationTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -102,25 +127,48 @@ namespace Acme.LegalTech.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     TenantId = table.Column<Guid>(type: "uuid", nullable: true),
-                    OrderId = table.Column<Guid>(type: "uuid", nullable: false),
                     ContractId = table.Column<Guid>(type: "uuid", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: false),
                     Amount = table.Column<decimal>(type: "numeric", nullable: false),
                     CumulativeAmount = table.Column<decimal>(type: "numeric", nullable: false),
-                    ApprovedBy = table.Column<string>(type: "text", nullable: true),
-                    ApprovedOn = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
+                    ApprovedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    ApprovedOn = table.Column<DateTime>(type: "timestamp without time zone", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AppVariationOrders", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AppVariationOrders_AppContracts_ContractId",
+                        column: x => x.ContractId,
+                        principalTable: "AppContracts",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_AppContractSignatories_ContractId_Role",
+                name: "IX_AppContracts_Classification",
+                table: "AppContracts",
+                column: "Classification");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AppContracts_DocumentNumber",
+                table: "AppContracts",
+                column: "DocumentNumber");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AppContractSignatories_ContractId",
                 table: "AppContractSignatories",
-                columns: new[] { "ContractId", "Role" },
-                unique: true,
-                filter: "[Role] = 4");
+                column: "ContractId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AppContractSignatories_ContractId_PartyId",
+                table: "AppContractSignatories",
+                columns: new[] { "ContractId", "PartyId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AppGovernmentApprovalTiers_AmountFrom_AmountTo",
+                table: "AppGovernmentApprovalTiers",
+                columns: new[] { "AmountFrom", "AmountTo" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AppGovernmentApprovalTiers_TenantId",
@@ -128,20 +176,14 @@ namespace Acme.LegalTech.Migrations
                 column: "TenantId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AppGovernmentApprovalTiers_TenantId_AmountFrom_AmountTo",
-                table: "AppGovernmentApprovalTiers",
-                columns: new[] { "TenantId", "AmountFrom", "AmountTo" },
-                unique: true);
+                name: "IX_AppVariationOrders_ApprovedBy",
+                table: "AppVariationOrders",
+                column: "ApprovedBy");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AppVariationOrders_ContractId",
                 table: "AppVariationOrders",
                 column: "ContractId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AppVariationOrders_OrderId",
-                table: "AppVariationOrders",
-                column: "OrderId");
         }
 
         /// <inheritdoc />
@@ -155,6 +197,14 @@ namespace Acme.LegalTech.Migrations
 
             migrationBuilder.DropTable(
                 name: "AppVariationOrders");
+
+            migrationBuilder.DropIndex(
+                name: "IX_AppContracts_Classification",
+                table: "AppContracts");
+
+            migrationBuilder.DropIndex(
+                name: "IX_AppContracts_DocumentNumber",
+                table: "AppContracts");
 
             migrationBuilder.DropColumn(
                 name: "Classification",
@@ -174,6 +224,18 @@ namespace Acme.LegalTech.Migrations
 
             migrationBuilder.DropColumn(
                 name: "DocumentYear",
+                table: "AppContracts");
+
+            migrationBuilder.DropColumn(
+                name: "LastApprovalAuthorityTitle",
+                table: "AppContracts");
+
+            migrationBuilder.DropColumn(
+                name: "LastApprovalRequiresNeda",
+                table: "AppContracts");
+
+            migrationBuilder.DropColumn(
+                name: "LastApprovalRequiresPresident",
                 table: "AppContracts");
 
             migrationBuilder.DropColumn(
