@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { RestService, PagedResultDto } from '@abp/ng.core';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 
 export interface ReviewCaseDto {
   id: string;
@@ -188,5 +188,15 @@ export class ReviewsService {
     }, {
       apiName: this.apiName,
     });
+  }
+
+  /** Placeholder — requires new backend endpoint (see Plan 1 backend work). */
+  getComments(reviewCaseId: string): Observable<ReviewCommentDto[]> {
+    return throwError(() => new Error('Comments endpoint not yet implemented on the backend.'));
+  }
+
+  /** Placeholder — requires new backend endpoint (see Plan 1 backend work). */
+  addComment(reviewCaseId: string, content: string): Observable<ReviewCommentDto> {
+    return throwError(() => new Error('Comments endpoint not yet implemented on the backend.'));
   }
 }

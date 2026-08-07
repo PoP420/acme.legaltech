@@ -9,7 +9,7 @@ export interface ContractObligationDto {
   contractTitle?: string;
   title: string;
   description: string;
-  status: string;
+  status: ObligationStatus;
   dueDate?: string | null;
   completedAt?: string | null;
   sourceClauseReference?: string | null;
@@ -75,6 +75,15 @@ export class ObligationsService {
     });
   }
 
+  get(id: string): Observable<ContractObligationDto> {
+    return this.restService.request<null, ContractObligationDto>({
+      method: 'GET',
+      url: `/api/app/contract-obligation/${id}`,
+    }, {
+      apiName: this.apiName,
+    });
+  }
+
   create(input: ContractObligationCreateDto): Observable<ContractObligationDto> {
     return this.restService.request<ContractObligationCreateDto, ContractObligationDto>({
       method: 'POST',
@@ -103,4 +112,51 @@ export class ObligationsService {
       apiName: this.apiName,
     });
   }
+
+  complete(id: string): Observable<ContractObligationDto> {
+    return this.restService.request<null, ContractObligationDto>({
+      method: 'PUT',
+      url: `/api/app/contract-obligation/${id}/complete`,
+    }, {
+      apiName: this.apiName,
+    });
+  }
+
+  defer(id: string): Observable<ContractObligationDto> {
+    return this.restService.request<null, ContractObligationDto>({
+      method: 'PUT',
+      url: `/api/app/contract-obligation/${id}/defer`,
+    }, {
+      apiName: this.apiName,
+    });
+  }
 }
+
+export type ObligationStatus = 'Pending' | 'InProgress' | 'Completed' | 'Deferred' | 'Overdue';
+
+export const ObligationStatusLabels: Record<string, string> = {
+  Pending: 'Pending',
+  InProgress: 'In Progress',
+  Completed: 'Completed',
+  Deferred: 'Deferred',
+  Overdue: 'Overdue',
+};
+
+export const ObligationStatusBadgeClass: Record<string, string> = {
+  Pending: 'bg-secondary',
+  InProgress: 'bg-info',
+  Completed: 'bg-success',
+  Deferred: 'bg-warning',
+  Overdue: 'bg-danger',
+};
+
+export type RecurrencePattern = 'None' | 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Annually';
+
+export const RecurrencePatternLabels: Record<string, string> = {
+  None: 'One-time',
+  Daily: 'Daily',
+  Weekly: 'Weekly',
+  Monthly: 'Monthly',
+  Quarterly: 'Quarterly',
+  Annually: 'Annually',
+};

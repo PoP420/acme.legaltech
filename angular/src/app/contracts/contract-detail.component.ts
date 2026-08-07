@@ -4,9 +4,9 @@ import { ActivatedRoute, ParamMap } from '@angular/router';
 import { switchMap, EMPTY } from 'rxjs';
 import { PermissionDirective } from '@abp/ng.core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatusLabels, ContractStatus, ContractSignatoryDto, VariationOrderDto, ApprovalAuthorityResultDto, AddSignatoryDto, AddVariationOrderDto, DocumentClassification, DocumentClassificationLabels, GovernmentSignatoryRole, GovernmentSignatoryRoleLabels, DocumentPartyType, DocumentPartyTypeLabels, ContractChangeStatusDto } from '../services/contract.service';
+import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatusLabels, ContractStatus, ContractSignatoryDto, VariationOrderDto, ApprovalAuthorityResultDto, AddSignatoryDto, AddVariationOrderDto, DocumentClassification, DocumentClassificationLabels, GovernmentSignatoryRole, GovernmentSignatoryRoleLabels, DocumentPartyType, DocumentPartyTypeLabels, ContractChangeStatusDto, ContractUpdateRequest } from '../services/contract.service';
 
 @Component({
   selector: 'app-contract-detail',
@@ -272,6 +272,18 @@ import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatu
                           *abpPermission="'LegalTech.Contracts'">
                     View
                   </button>
+                  <ng-container *abpPermission="'LegalTech.Contracts.Edit'">
+                  <button class="btn btn-sm btn-outline-info me-1"
+                          (click)="openExtractionReview(version)"
+                          *ngIf="version.extractionStatus === 'Success'">
+                    Review
+                  </button>
+                  <button class="btn btn-sm btn-outline-warning me-1"
+                          (click)="retryExtraction(version)"
+                          *ngIf="version.extractionStatus === 'Failed' || version.extractionStatus === 'Error'">
+                    Retry
+                  </button>
+                </ng-container>
                   <button class="btn btn-sm btn-outline-danger"
                           (click)="onDelete(version.id)"
                           *abpPermission="'LegalTech.Contracts.AttachDocument'">
@@ -313,8 +325,59 @@ import { ContractService, ContractDto, ContractDocumentVersionDto, ContractStatu
         </div>
       </div>
     </div>
+
+    <div class="modal-backdrop fade show" *ngIf="extractionReviewVisible" (click)="closeExtractionReview()"></div>
+    <div class="modal fade show d-block" tabindex="-1" *ngIf="extractionReviewVisible" role="dialog" aria-modal="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Review AI Extraction: {{ selectedVersionForReview?.fileName }}</h5>
+            <button type="button" class="btn-close" (click)="closeExtractionReview()" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-info">
+              AI extracted the following values. Accept to update the contract, or edit and accept.
+            </div>
+            <form [formGroup]="extractionForm">
+              <div class="mb-3">
+                <label class="form-label">Title</label>
+                <input class="form-control" formControlName="title" />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Counterparty</label>
+                <input class="form-control" formControlName="counterparty" />
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Effective Date</label>
+                  <input type="date" class="form-control" formControlName="effectiveDate" />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Expiration Date</label>
+                  <input type="date" class="form-control" formControlName="expirationDate" />
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Category</label>
+                  <input class="form-control" formControlName="category" />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Risk Baseline</label>
+                  <input class="form-control" formControlName="riskBaseline" />
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeExtractionReview()">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="acceptExtraction()" [disabled]="extractionForm.invalid">Accept & Update Contract</button>
+          </div>
+        </div>
+      </div>
+    </div>
   `,
-  imports: [CommonModule, RouterLink, PermissionDirective, FormsModule],
+  imports: [CommonModule, RouterLink, PermissionDirective, FormsModule, ReactiveFormsModule],
 })
 export class ContractDetailComponent {
   contract: ContractDto | null = null;
@@ -333,6 +396,10 @@ export class ContractDetailComponent {
   previewLoaded = true;
   previewBlobUrl: SafeResourceUrl | null = null;
   private currentPreviewObjectUrl: string | null = null;
+
+  extractionReviewVisible = false;
+  selectedVersionForReview: ContractDocumentVersionDto | null = null;
+  extractionForm: FormGroup;
 
   signatoryError = false;
   signatoryErrorMessage = '';
@@ -393,7 +460,16 @@ export class ContractDetailComponent {
     private route: ActivatedRoute,
     private contractService: ContractService,
     private sanitizer: DomSanitizer,
+    private fb: FormBuilder,
   ) {
+    this.extractionForm = this.fb.group({
+      title: ['', Validators.required],
+      counterparty: ['', Validators.required],
+      effectiveDate: [''],
+      expirationDate: [''],
+      category: [''],
+      riskBaseline: [''],
+    });
     this.route.paramMap.pipe(
       switchMap((params: ParamMap) => {
         const id = params.get('id');
@@ -535,15 +611,64 @@ export class ContractDetailComponent {
   }
 
   extractionLabel(status: string | null | undefined): string {
-    if (!status) return 'Pending';
+    if (!status) return 'Processing...';
+    if (status === 'Success') return 'Review';
+    if (status === 'Failed') return 'Failed';
+    if (status === 'Error') return 'Error';
     return status;
   }
 
   extractionBadgeClass(status: string | null | undefined): string {
     if (status === 'Success') return 'bg-success';
     if (status === 'Failed') return 'bg-danger';
-    if (status === 'Error') return 'bg-warning';
-    return 'bg-secondary';
+    if (status === 'Error') return 'bg-danger';
+    return 'bg-warning';
+  }
+
+  openExtractionReview(version: ContractDocumentVersionDto) {
+    this.selectedVersionForReview = version;
+    this.extractionForm.patchValue({
+      title: version.extractedTitle || this.contract?.title || '',
+      counterparty: version.extractedCounterparty || this.contract?.counterpartyName || '',
+      effectiveDate: version.extractedEffectiveDate || this.contract?.effectiveDate || '',
+      expirationDate: version.extractedExpirationDate || this.contract?.expirationDate || '',
+      category: version.extractedCategory || this.contract?.category || '',
+      riskBaseline: version.extractedRiskBaseline || this.contract?.riskBaseline || '',
+    });
+    this.extractionReviewVisible = true;
+  }
+
+  closeExtractionReview() {
+    this.extractionReviewVisible = false;
+    this.selectedVersionForReview = null;
+    this.extractionForm.reset();
+  }
+
+  acceptExtraction() {
+    if (!this.contract || this.extractionForm.invalid) return;
+    const formValue = this.extractionForm.value;
+    const updateRequest: ContractUpdateRequest = {
+      title: formValue.title,
+      counterpartyName: formValue.counterparty,
+      effectiveDate: formValue.effectiveDate,
+      expirationDate: formValue.expirationDate,
+      category: formValue.category,
+      riskBaseline: formValue.riskBaseline,
+    };
+    this.contractService.update(this.contract.id, updateRequest).subscribe({
+      next: (updated) => {
+        this.contract = updated;
+        this.loadVersions(updated.id);
+        this.closeExtractionReview();
+      },
+      error: (err) => {
+        alert(err?.message || 'Failed to update contract with extraction values.');
+      },
+    });
+  }
+
+  retryExtraction(version: ContractDocumentVersionDto) {
+    this.onUpload();
   }
 
   formatSize(bytes: number): string {
