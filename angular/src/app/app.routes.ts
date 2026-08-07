@@ -52,4 +52,10 @@ export const APP_ROUTES: Routes = [
     data: { requiredPolicy: 'LegalTech.Obligations' },
     loadChildren: () => import('./obligations/obligations.routes').then(c => c.OBLIGATIONS_ROUTES),
   },
+  {
+    path: 'reports',
+    canActivate: [permissionGuard],
+    data: { requiredPolicy: 'LegalTech.Reports' },
+    loadChildren: () => import('./reports/reports.routes').then(c => c.REPORTS_ROUTES),
+  },
 ];
