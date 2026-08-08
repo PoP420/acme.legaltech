@@ -41,6 +41,10 @@ The documentation is split into:
 - Keep requirement IDs stable once implementation begins.
 - Update both product-level and implementation-level documents when scope changes.
 
+## Testing
+
+- [Playwright Guides](./playright-guides/README.md) — Learn Playwright by testing LegalTech (5 progressive guides)
+
 ## Change log
 
 - 2026-07-12: Initial Business-Ready v1 documentation baseline created.
