@@ -15,6 +15,7 @@ public static class LegalTechPermissions
         public const string Reports = GroupName + ".Reports";
         public const string Files = GroupName + ".Files";
         public const string Administration = GroupName + ".Administration";
+        public const string AIAssist = GroupName + ".AIAssist";
 
         public static readonly IReadOnlyList<string> All =
         [
@@ -24,7 +25,8 @@ public static class LegalTechPermissions
             Obligations,
             Reports,
             Files,
-            Administration
+            Administration,
+            AIAssist
         ];
     }
 
@@ -177,6 +179,22 @@ public static class LegalTechPermissions
             Default,
             Tenants,
             PlanManagement
+        ];
+    }
+
+    public static class AIAssist
+    {
+        public const string Default = Groups.AIAssist;
+        public const string RunJobs = Default + ".RunJobs";
+        public const string ReviewSuggestions = Default + ".ReviewSuggestions";
+        public const string ConfigureProviders = Default + ".ConfigureProviders";
+
+        public static readonly IReadOnlyList<string> All =
+        [
+            Default,
+            RunJobs,
+            ReviewSuggestions,
+            ConfigureProviders
         ];
     }
 }

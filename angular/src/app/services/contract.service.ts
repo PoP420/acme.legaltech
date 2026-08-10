@@ -388,4 +388,61 @@ export class ContractService {
       }),
     );
   }
+
+  createIngestionJob(contractDocumentVersionId: string, jobType: string, providerName?: string) {
+    return this.restService.request<{ jobType: string; providerName?: string }, any>({
+      method: 'POST',
+      url: `/api/app/ai/ingestion-jobs/${contractDocumentVersionId}`,
+      body: { jobType, providerName },
+    }, {
+      apiName: this.apiName,
+    });
+  }
+
+  runIngestionJob(jobId: string) {
+    return this.restService.request<null, any>({
+      method: 'POST',
+      url: `/api/app/ai/ingestion-jobs/${jobId}/run`,
+    }, {
+      apiName: this.apiName,
+    });
+  }
+
+  getExtractionSuggestions(ingestionJobId: string) {
+    return this.restService.request<null, { items: any[] }>({
+      method: 'GET',
+      url: `/api/app/ai/suggestions/extraction/${ingestionJobId}`,
+    }, {
+      apiName: this.apiName,
+    });
+  }
+
+  decideExtractionSuggestion(suggestionId: string, decision: string, correctedValue?: string, comment?: string) {
+    return this.restService.request<{ decision: string; correctedValue?: string; comment?: string }, any>({
+      method: 'POST',
+      url: `/api/app/ai/suggestions/extraction/${suggestionId}/decide`,
+      body: { decision, correctedValue, comment },
+    }, {
+      apiName: this.apiName,
+    });
+  }
+
+  getRiskSuggestions(ingestionJobId: string) {
+    return this.restService.request<null, { items: any[] }>({
+      method: 'GET',
+      url: `/api/app/ai/suggestions/risk/${ingestionJobId}`,
+    }, {
+      apiName: this.apiName,
+    });
+  }
+
+  decideRiskSuggestion(suggestionId: string, decision: string, correctedValue?: string, comment?: string) {
+    return this.restService.request<{ decision: string; correctedValue?: string; comment?: string }, any>({
+      method: 'POST',
+      url: `/api/app/ai/suggestions/risk/${suggestionId}/decide`,
+      body: { decision, correctedValue, comment },
+    }, {
+      apiName: this.apiName,
+    });
+  }
 }

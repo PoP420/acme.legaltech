@@ -4,6 +4,7 @@ using Acme.LegalTech.Common;
 using Acme.LegalTech.Contracts;
 using Acme.LegalTech.Obligations;
 using Acme.LegalTech.Playbooks;
+using Acme.LegalTech.Processing;
 using Acme.LegalTech.Reviews;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp.AuditLogging.EntityFrameworkCore;
@@ -57,6 +58,11 @@ public class LegalTechDbContext :
     public DbSet<RenewalSchedule> RenewalSchedules { get; set; }
     public DbSet<ObligationReminder> ObligationReminders { get; set; }
     public DbSet<CompletionEvidence> CompletionEvidence { get; set; }
+
+    public DbSet<IngestionJob> IngestionJobs { get; set; }
+    public DbSet<ExtractionSuggestion> ExtractionSuggestions { get; set; }
+    public DbSet<RiskAssessmentSuggestion> RiskAssessmentSuggestions { get; set; }
+    public DbSet<SuggestionDecision> SuggestionDecisions { get; set; }
     
     /* Notice: We only implemented IIdentityProDbContext and ISaasDbContext
      * and replaced them for this DbContext. This allows you to perform JOIN
@@ -330,6 +336,46 @@ public class LegalTechDbContext :
             // Unique index for tier ranges per tenant (optional, could overlap for different ranges)
             b.HasIndex(t => new { t.TenantId, t.AmountFrom, t.AmountTo })
                 .IsUnique();
+        });
+
+        builder.Entity<IngestionJob>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "IngestionJobs", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(j => j.ContractDocumentVersionId);
+            b.HasIndex(j => j.Status);
+            b.HasIndex(j => j.TenantId);
+        });
+
+        builder.Entity<ExtractionSuggestion>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "ExtractionSuggestions", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(s => s.IngestionJobId);
+            b.HasIndex(s => s.ContractDocumentVersionId);
+            b.HasIndex(s => s.Status);
+        });
+
+        builder.Entity<RiskAssessmentSuggestion>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "RiskAssessmentSuggestions", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(s => s.IngestionJobId);
+            b.HasIndex(s => s.ContractId);
+            b.HasIndex(s => s.Status);
+        });
+
+        builder.Entity<SuggestionDecision>(b =>
+        {
+            b.ToTable(LegalTechConsts.DbTablePrefix + "SuggestionDecisions", LegalTechConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.HasIndex(d => d.SuggestionId);
+            b.HasIndex(d => d.DeciderUserId);
+            b.HasIndex(d => d.DecidedAt);
         });
     }
 }

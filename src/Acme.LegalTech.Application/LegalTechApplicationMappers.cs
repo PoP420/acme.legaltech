@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Acme.LegalTech.Common;
 using Acme.LegalTech.Contracts;
+using Acme.LegalTech.Processing;
 
 namespace Acme.LegalTech;
 
@@ -136,4 +137,61 @@ public class LegalTechApplicationMappers
         destination.ExpirationDate = source.ExpirationDate;
         destination.OwnerUserId = source.OwnerUserId;
     }
+
+    public IngestionJobDto MapToIngestionJobDto(IngestionJob source) => new()
+    {
+        Id = source.Id,
+        TenantId = source.TenantId,
+        ContractDocumentVersionId = source.ContractDocumentVersionId,
+        JobType = source.JobType,
+        Status = source.Status,
+        ProviderName = source.ProviderName,
+        StartedAt = source.StartedAt,
+        CompletedAt = source.CompletedAt,
+        ErrorMessage = source.ErrorMessage,
+        RetryCount = source.RetryCount
+    };
+
+    public ExtractionSuggestionDto MapToExtractionSuggestionDto(ExtractionSuggestion source) => new()
+    {
+        Id = source.Id,
+        TenantId = source.TenantId,
+        IngestionJobId = source.IngestionJobId,
+        ContractDocumentVersionId = source.ContractDocumentVersionId,
+        FieldName = source.FieldName,
+        SuggestedValue = source.SuggestedValue,
+        OriginalValue = source.OriginalValue,
+        Confidence = source.Confidence,
+        Status = source.Status,
+        SourceSpan = source.SourceSpan,
+        ProviderName = source.ProviderName
+    };
+
+    public RiskAssessmentSuggestionDto MapToRiskAssessmentSuggestionDto(RiskAssessmentSuggestion source) => new()
+    {
+        Id = source.Id,
+        TenantId = source.TenantId,
+        IngestionJobId = source.IngestionJobId,
+        ContractId = source.ContractId,
+        RiskType = source.RiskType,
+        Description = source.Description,
+        Severity = source.Severity,
+        Confidence = source.Confidence,
+        Status = source.Status,
+        RuleId = source.RuleId,
+        ProviderName = source.ProviderName
+    };
+
+    public SuggestionDecisionDto MapToSuggestionDecisionDto(SuggestionDecision source) => new()
+    {
+        Id = source.Id,
+        TenantId = source.TenantId,
+        SuggestionId = source.SuggestionId,
+        SuggestionType = source.SuggestionType,
+        DeciderUserId = source.DeciderUserId,
+        Decision = source.Decision,
+        CorrectedValue = source.CorrectedValue,
+        Comment = source.Comment,
+        DecidedAt = source.DecidedAt
+    };
 }

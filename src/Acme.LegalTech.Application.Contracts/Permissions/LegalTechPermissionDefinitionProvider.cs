@@ -28,6 +28,7 @@ public class LegalTechPermissionDefinitionProvider : PermissionDefinitionProvide
         RegisterDashboardsPermissions(context, keys);
         RegisterFilesPermissions(context, keys);
         RegisterAdministrationPermissions(context, keys);
+        RegisterAIAssistPermissions(context, keys);
 
         LegalTechPermissionGuard.ThrowIfDuplicateKeys(keys);
     }
@@ -152,6 +153,19 @@ public class LegalTechPermissionDefinitionProvider : PermissionDefinitionProvide
         keys.Add(tenants.Name);
         var planManagement = group.AddPermission(LegalTechPermissions.Administration.PlanManagement, L("Permission:Administration.PlanManagement"));
         keys.Add(planManagement.Name);
+    }
+
+    private void RegisterAIAssistPermissions(IPermissionDefinitionContext context, List<string> keys)
+    {
+        var group = context.GetGroup(LegalTechPermissions.Groups.AIAssist);
+        var defaultPerm = group.AddPermission(LegalTechPermissions.AIAssist.Default, L("Permission:AIAssist"));
+        keys.Add(defaultPerm.Name);
+        var runJobs = group.AddPermission(LegalTechPermissions.AIAssist.RunJobs, L("Permission:AIAssist.RunJobs"));
+        keys.Add(runJobs.Name);
+        var reviewSuggestions = group.AddPermission(LegalTechPermissions.AIAssist.ReviewSuggestions, L("Permission:AIAssist.ReviewSuggestions"));
+        keys.Add(reviewSuggestions.Name);
+        var configureProviders = group.AddPermission(LegalTechPermissions.AIAssist.ConfigureProviders, L("Permission:AIAssist.ConfigureProviders"));
+        keys.Add(configureProviders.Name);
     }
 
     private static LocalizableString L(string name)
