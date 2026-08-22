@@ -19,5 +19,6 @@
         <Project Path="test/Acme.LegalTech.TestBase/Acme.LegalTech.TestBase.csproj" />
         <Project Path="test/Acme.LegalTech.Domain.Tests/Acme.LegalTech.Domain.Tests.csproj" />
         <Project Path="test/Acme.LegalTech.HttpApi.Client.ConsoleTestApp/Acme.LegalTech.HttpApi.Client.ConsoleTestApp.csproj" />
+        <Project Path="test/Acme.LegalTech.HttpApi.Tests/Acme.LegalTech.HttpApi.Tests.csproj" />
     </Folder>
 </Solution>
